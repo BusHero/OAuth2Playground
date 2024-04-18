@@ -17,8 +17,7 @@ public static class Stuff
     private const string AuthEndpoint = "http://localhost:9001/authorize";
     private const string TokenEndpoint = "http://localhost:9001/token";
 
-    private static async Task<string> DoStuff(
-        )
+    private static async Task<string> DoStuff()
     {
         using var httpClient = new HttpClient();
 
