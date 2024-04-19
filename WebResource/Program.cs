@@ -15,7 +15,7 @@ app.MapPost("/resource", async (
     [FromServices] TokenExtractor extractor,
     HttpContext context) =>
 {
-    var token = await extractor.GetToken(context);
+    var token = await extractor.GetBearerToken(context);
     return new { Message = token };
 });
 
@@ -25,7 +25,7 @@ public partial class Program;
 
 internal class TokenExtractor(ILogger<TokenExtractor> logger)
 {
-    public async Task<string?> GetToken(HttpContext context)
+    public async Task<string?> GetBearerToken(HttpContext context)
     {
         return context.Request switch
         {
@@ -34,11 +34,12 @@ internal class TokenExtractor(ILogger<TokenExtractor> logger)
                 ["Bearer", var token] => token,
                 _ => null
             },
-            {HasFormContentType:true}x => await x.ReadFormAsync() switch
+            { HasFormContentType: true } x => await x.ReadFormAsync() switch
             {
-                var y when y.ContainsKey("access_token") => y["access_token"].ToString(),
+                var form when form.TryGetValue("access_token", out var accessToken) => accessToken.ToString(),
                 _ => null,
             },
+            { Query: var query } when query.TryGetValue("access_token", out var accessToken) => accessToken.ToString(),
             _ => null,
         };
     }
