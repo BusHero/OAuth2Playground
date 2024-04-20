@@ -81,14 +81,43 @@ bool IsTokenValid(string token)
         .HashData(
             Encoding.ASCII.GetBytes("secret"),
             Encoding.ASCII.GetBytes($"{parts[0]}.{parts[1]}"));
+
     var signature = Convert
         .ToBase64String(verified)
         .Replace("/", "_")
         .Replace("=", "");
-    
-    var result = signature == parts[2];
 
-    return result;
+    if (signature != parts[2])
+    {
+        return false;
+    }
+
+    var payloadAsJson = parts[1].FromBase64();
+
+    var payload = JsonDocument.Parse(payloadAsJson)
+        .RootElement;
+    
+    var issuedAt = payload
+        .GetProperty("iat")
+        .GetInt64();
+    var now = DateTimeOffset.Now.ToUnixTimeSeconds();
+    if (now < issuedAt)
+    {
+        return false;
+    }
+    
+    var expireAt = payload
+        .GetProperty("exp")
+        .GetInt64();
+
+    if (expireAt < now)
+    {
+        return false;
+    }
+    
+    
+
+    return true;
 }
 
 public partial class Program;

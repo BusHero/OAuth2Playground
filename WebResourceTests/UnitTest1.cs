@@ -179,9 +179,9 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
             .Should()
             .BeFalse();
     }
-    
+
     [Fact]
-    public async Task JwtSignedWithWrongKeyIsNotVerified()
+    public async Task ExpieredTokenIsInvalid()
     {
         var token = GetHmac256SignedToken(new Dictionary<string, object>
         {
@@ -189,9 +189,35 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
             ["sub"] = "alice",
             ["aud"] = "http://localhost:9002",
             ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
+            ["exp"] = DateTimeOffset.Now.AddMinutes(-1).ToUnixTimeSeconds(),
+            ["jti"] = Guid.NewGuid().ToString("N"),
+        }, "secret");
+
+        _client.DefaultRequestHeaders.Authorization
+            = new AuthenticationHeaderValue("Bearer", token);
+
+        var result = await _client
+            .PostAsync("/resource", null);
+
+        var content = await result.Content.ReadFromJsonAsync<Content>();
+
+        content!
+            .IsVerified
+            .Should()
+            .BeFalse();
+    }
+    [Fact]
+    public async Task IssuedAtInTheFutureIsNotVerified()
+    {
+        var token = GetHmac256SignedToken(new Dictionary<string, object>
+        {
+            ["iss"] = "http://localhost:9001",
+            ["sub"] = "alice",
+            ["aud"] = "http://localhost:9002",
+            ["iat"] = DateTimeOffset.Now.AddMinutes(1).ToUnixTimeSeconds(),
             ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
             ["jti"] = Guid.NewGuid().ToString("N"),
-        }, "secret2");
+        }, "secret");
 
         _client.DefaultRequestHeaders.Authorization
             = new AuthenticationHeaderValue("Bearer", token);
