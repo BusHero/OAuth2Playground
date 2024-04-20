@@ -101,15 +101,7 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     [Theory, AutoData]
     public async Task NoTokenInBody_Unauthorized(string otherName)
     {
-        var token = GetHmac256SignedToken(new Dictionary<string, object>
-        {
-            ["iss"] = "http://localhost:9001",
-            ["sub"] = "alice",
-            ["aud"] = "http://localhost:9002",
-            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
-            ["jti"] = Guid.NewGuid().ToString("N"),
-        }, "secret");
+        var token = GetHmac256SignedToken(GetValidPayload(), "secret");
         var result = await _client
             .PostAsync("/resource", new FormUrlEncodedContent([
                 new KeyValuePair<string, string>(otherName, token)
@@ -124,15 +116,8 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task TokenInQueryParameters_Ok()
     {
-        var token = GetHmac256SignedToken(new Dictionary<string, object>
-        {
-            ["iss"] = "http://localhost:9001",
-            ["sub"] = "alice",
-            ["aud"] = "http://localhost:9002",
-            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
-            ["jti"] = Guid.NewGuid().ToString("N"),
-        }, "secret");
+        var dictionary = GetValidPayload();
+        var token = GetHmac256SignedToken(dictionary, "secret");
 
         var result = await _client
             .PostAsync($"/resource?access_token={token}", null);
@@ -141,6 +126,20 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
             .StatusCode
             .Should()
             .Be(HttpStatusCode.OK);
+    }
+
+    private static Dictionary<string, object> GetValidPayload()
+    {
+        var dictionary = new Dictionary<string, object>
+        {
+            ["iss"] = "http://localhost:9001",
+            ["sub"] = "alice",
+            ["aud"] = "http://localhost:9002",
+            ["iat"] = DateTimeOffset.Now.AddMinutes(-1).ToUnixTimeSeconds(),
+            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
+            ["jti"] = Guid.NewGuid().ToString("N"),
+        };
+        return dictionary;
     }
 
 
