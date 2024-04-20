@@ -108,6 +108,7 @@ bool IsTokenValid(string token)
     var issuedAt = payload
         .GetProperty("iat")
         .GetInt64();
+    
     var now = DateTimeOffset.Now.ToUnixTimeSeconds();
     if (now < issuedAt)
     {

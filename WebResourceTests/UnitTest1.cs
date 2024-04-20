@@ -16,15 +16,7 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task AuthorizationInHeader_Ok()
     {
-        var token = GetHmac256SignedToken(new Dictionary<string, object>
-        {
-            ["iss"] = "http://localhost:9001",
-            ["sub"] = "alice",
-            ["aud"] = "http://localhost:9002",
-            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
-            ["jti"] = Guid.NewGuid().ToString("N"),
-        }, "secret");
+        var token = GetHmac256SignedToken(GetValidPayload(), "secret");
 
         _client.DefaultRequestHeaders.Authorization
             = new AuthenticationHeaderValue("Bearer", token);
@@ -53,15 +45,7 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     [Theory, AutoData]
     public async Task InvalidScheme_Unauthrorized(string scheme)
     {
-        var token = GetHmac256SignedToken(new Dictionary<string, object>
-        {
-            ["iss"] = "http://localhost:9001",
-            ["sub"] = "alice",
-            ["aud"] = "http://localhost:9002",
-            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
-            ["jti"] = Guid.NewGuid().ToString("N"),
-        }, "secret");
+        var token = GetHmac256SignedToken(GetValidPayload(), "secret");
         _client.DefaultRequestHeaders.Authorization
             = new AuthenticationHeaderValue(scheme, token);
 
@@ -77,15 +61,7 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task TokenInBody_Ok()
     {
-        var token = GetHmac256SignedToken(new Dictionary<string, object>
-        {
-            ["iss"] = "http://localhost:9001",
-            ["sub"] = "alice",
-            ["aud"] = "http://localhost:9002",
-            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
-            ["jti"] = Guid.NewGuid().ToString("N"),
-        }, "secret");
+        var token = GetHmac256SignedToken(GetValidPayload(), "secret");
 
         var result = await _client
             .PostAsync("/resource", new FormUrlEncodedContent([
@@ -116,8 +92,7 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task TokenInQueryParameters_Ok()
     {
-        var dictionary = GetValidPayload();
-        var token = GetHmac256SignedToken(dictionary, "secret");
+        var token = GetHmac256SignedToken(GetValidPayload(), "secret");
 
         var result = await _client
             .PostAsync($"/resource?access_token={token}", null);
@@ -163,15 +138,9 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task ExpiredToken_Unauthorized()
     {
-        var token = GetHmac256SignedToken(new Dictionary<string, object>
-        {
-            ["iss"] = "http://localhost:9001",
-            ["sub"] = "alice",
-            ["aud"] = "http://localhost:9002",
-            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-            ["exp"] = DateTimeOffset.Now.AddMinutes(-1).ToUnixTimeSeconds(),
-            ["jti"] = Guid.NewGuid().ToString("N"),
-        }, "secret");
+        var dictionary = GetValidPayload();
+        dictionary["exp"] = DateTimeOffset.Now.AddMinutes(-1).ToUnixTimeSeconds();
+        var token = GetHmac256SignedToken(dictionary, "secret");
 
         _client.DefaultRequestHeaders.Authorization
             = new AuthenticationHeaderValue("Bearer", token);
@@ -188,15 +157,9 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task WrongAudience_Unauthorized()
     {
-        var token = GetHmac256SignedToken(new Dictionary<string, object>
-        {
-            ["iss"] = "http://localhost:9001",
-            ["sub"] = "alice",
-            ["aud"] = "http://example.com",
-            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
-            ["jti"] = Guid.NewGuid().ToString("N"),
-        }, "secret");
+        var dictionary = GetValidPayload();
+        dictionary["aud"] = "http://example.com";
+        var token = GetHmac256SignedToken(dictionary, "secret");
 
         _client.DefaultRequestHeaders.Authorization
             = new AuthenticationHeaderValue("Bearer", token);
@@ -213,15 +176,9 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task WrongIssuer_Unauthorized()
     {
-        var token = GetHmac256SignedToken(new Dictionary<string, object>
-        {
-            ["iss"] = "http://example.com",
-            ["sub"] = "alice",
-            ["aud"] = "http://localhost:9002",
-            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
-            ["jti"] = Guid.NewGuid().ToString("N"),
-        }, "secret");
+        var dictionary = GetValidPayload();
+        dictionary["iss"] = "http://example.com";
+        var token = GetHmac256SignedToken(dictionary, "secret");
 
         _client.DefaultRequestHeaders.Authorization
             = new AuthenticationHeaderValue("Bearer", token);
@@ -238,15 +195,9 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task IssuedAtInTheFuture_Unauthorized()
     {
-        var token = GetHmac256SignedToken(new Dictionary<string, object>
-        {
-            ["iss"] = "http://localhost:9001",
-            ["sub"] = "alice",
-            ["aud"] = "http://localhost:9002",
-            ["iat"] = DateTimeOffset.Now.AddMinutes(1).ToUnixTimeSeconds(),
-            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
-            ["jti"] = Guid.NewGuid().ToString("N"),
-        }, "secret");
+        var dictionary = GetValidPayload();
+        dictionary["iat"] = DateTimeOffset.Now.AddMinutes(1).ToUnixTimeSeconds();
+        var token = GetHmac256SignedToken(dictionary, "secret");
 
         _client.DefaultRequestHeaders.Authorization
             = new AuthenticationHeaderValue("Bearer", token);
