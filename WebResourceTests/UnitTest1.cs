@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
@@ -16,19 +17,25 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task RightAuthorizationSchemeReturnsToken()
     {
-        var token = GetToken();
+        var token = GetHmac256SignedToken(new Dictionary<string, object>
+        {
+            ["iss"] = "http://localhost:9001",
+            ["sub"] = "alice",
+            ["aud"] = "http://localhost:9002",
+            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
+            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
+            ["jti"] = Guid.NewGuid().ToString("N"),
+        }, "secret");
         _client.DefaultRequestHeaders.Authorization
             = new AuthenticationHeaderValue("Bearer", token);
 
         var result = await _client
             .PostAsync("/resource", null);
 
-        var content = await result.Content.ReadFromJsonAsync<Content>();
-
-        content!
-            .Token
+        result
+            .StatusCode
             .Should()
-            .Be(token);
+            .Be(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -37,101 +44,127 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
         var result = await _client
             .PostAsync("/resource", null);
 
-        var content = await result.Content.ReadFromJsonAsync<Content>();
-
-        content!
-            .Token
+        result
+            .StatusCode
             .Should()
-            .BeNull();
+            .Be(HttpStatusCode.Unauthorized);
     }
 
     [Theory, AutoData]
     public async Task InvalidAuthReturnsNull(string scheme)
     {
-        var token = GetToken();
+        var token = GetHmac256SignedToken(new Dictionary<string, object>
+        {
+            ["iss"] = "http://localhost:9001",
+            ["sub"] = "alice",
+            ["aud"] = "http://localhost:9002",
+            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
+            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
+            ["jti"] = Guid.NewGuid().ToString("N"),
+        }, "secret");
         _client.DefaultRequestHeaders.Authorization
             = new AuthenticationHeaderValue(scheme, null);
 
         var result = await _client
             .PostAsync("/resource", null);
 
-        var content = await result.Content.ReadFromJsonAsync<Content>();
-
-        content!
-            .Token
+        result
+            .StatusCode
             .Should()
-            .BeNull();
+            .Be(HttpStatusCode.Unauthorized);
     }
 
     [Theory, AutoData]
     public async Task WrongAuthSchemeReturnsNull(string scheme)
     {
-        var token = GetToken();
+        var token = GetHmac256SignedToken(new Dictionary<string, object>
+        {
+            ["iss"] = "http://localhost:9001",
+            ["sub"] = "alice",
+            ["aud"] = "http://localhost:9002",
+            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
+            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
+            ["jti"] = Guid.NewGuid().ToString("N"),
+        }, "secret");
         _client.DefaultRequestHeaders.Authorization
             = new AuthenticationHeaderValue(scheme, token);
 
         var result = await _client
             .PostAsync("/resource", null);
 
-        var content = await result.Content.ReadFromJsonAsync<Content>();
-
-        content!
-            .Token
+        result
+            .StatusCode
             .Should()
-            .BeNull();
+            .Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
     public async Task GetTokenFromBody()
     {
-        var token = GetToken();
+        var token = GetHmac256SignedToken(new Dictionary<string, object>
+        {
+            ["iss"] = "http://localhost:9001",
+            ["sub"] = "alice",
+            ["aud"] = "http://localhost:9002",
+            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
+            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
+            ["jti"] = Guid.NewGuid().ToString("N"),
+        }, "secret");
+        
         var result = await _client
             .PostAsync("/resource", new FormUrlEncodedContent([
                 new KeyValuePair<string, string>("access_token", token)
             ]));
 
-        var body = await result.Content.ReadAsStringAsync();
-        var content = await result.Content.ReadFromJsonAsync<Content>();
-
-        content!
-            .Token
+        result
+            .StatusCode
             .Should()
-            .Be(token);
+            .Be(HttpStatusCode.OK);
     }
 
     [Theory, AutoData]
     public async Task NoTokenInBodyReturnsNull(string otherName)
     {
-        var token = GetToken();
+        var token = GetHmac256SignedToken(new Dictionary<string, object>
+        {
+            ["iss"] = "http://localhost:9001",
+            ["sub"] = "alice",
+            ["aud"] = "http://localhost:9002",
+            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
+            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
+            ["jti"] = Guid.NewGuid().ToString("N"),
+        }, "secret");
         var result = await _client
             .PostAsync("/resource", new FormUrlEncodedContent([
                 new KeyValuePair<string, string>(otherName, token)
             ]));
 
-        var body = await result.Content.ReadAsStringAsync();
-        var content = await result.Content.ReadFromJsonAsync<Content>();
-
-        content!
-            .Token
+        result
+            .StatusCode
             .Should()
-            .BeNull();
+            .Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
     public async Task GetTokenFromQueryParameters()
     {
-        var token = GetToken();
+        var token = GetHmac256SignedToken(new Dictionary<string, object>
+        {
+            ["iss"] = "http://localhost:9001",
+            ["sub"] = "alice",
+            ["aud"] = "http://localhost:9002",
+            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
+            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
+            ["jti"] = Guid.NewGuid().ToString("N"),
+        }, "secret");
 
         var result = await _client
             .PostAsync($"/resource?access_token={token}", null);
 
-        var body = await result.Content.ReadAsStringAsync();
-        var content = await result.Content.ReadFromJsonAsync<Content>();
-
-        content!
-            .Token
+        result
+            .StatusCode
             .Should()
-            .Be(token);
+            .Be(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -153,12 +186,10 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
         var result = await _client
             .PostAsync("/resource", null);
 
-        var content = await result.Content.ReadFromJsonAsync<Content>();
-
-        content!
-            .IsVerified
+        result
+            .StatusCode
             .Should()
-            .BeTrue();
+            .Be(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -172,12 +203,10 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
         var result = await _client
             .PostAsync("/resource", null);
 
-        var content = await result.Content.ReadFromJsonAsync<Content>();
-
-        content!
-            .IsVerified
+        result
+            .StatusCode
             .Should()
-            .BeFalse();
+            .Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
@@ -198,13 +227,11 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
 
         var result = await _client
             .PostAsync("/resource", null);
-
-        var content = await result.Content.ReadFromJsonAsync<Content>();
-
-        content!
-            .IsVerified
+        
+        result
+            .StatusCode
             .Should()
-            .BeFalse();
+            .Be(HttpStatusCode.Unauthorized);
     }
     
     [Fact]
@@ -226,13 +253,12 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
         var result = await _client
             .PostAsync("/resource", null);
 
-        var content = await result.Content.ReadFromJsonAsync<Content>();
-
-        content!
-            .IsVerified
+        result
+            .StatusCode
             .Should()
-            .BeFalse();
+            .Be(HttpStatusCode.Unauthorized);
     }
+    
     [Fact]
     public async Task WrongIssuerIsInvalid()
     {
@@ -252,12 +278,10 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
         var result = await _client
             .PostAsync("/resource", null);
 
-        var content = await result.Content.ReadFromJsonAsync<Content>();
-
-        content!
-            .IsVerified
+        result
+            .StatusCode
             .Should()
-            .BeFalse();
+            .Be(HttpStatusCode.Unauthorized);
     }
     
     [Fact]
@@ -279,12 +303,10 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
         var result = await _client
             .PostAsync("/resource", null);
 
-        var content = await result.Content.ReadFromJsonAsync<Content>();
-
-        content!
-            .IsVerified
+        result
+            .StatusCode
             .Should()
-            .BeFalse();
+            .Be(HttpStatusCode.Unauthorized);
     }
 
     private static string GetHmac256SignedToken(

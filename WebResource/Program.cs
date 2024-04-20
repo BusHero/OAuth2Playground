@@ -22,11 +22,9 @@ app.MapPost("/resource", async (
     var token = await extractor.GetBearerToken(context);
     var bearerToken = GetParts(token);
     var isTokenValid = IsTokenValid(token);
-    return new Content
-    {
-        Token = token,
-        IsVerified = isTokenValid,
-    };
+    return isTokenValid 
+        ? Results.Ok(new { Message = "Hello, World!", }) 
+        : Results.Unauthorized();
 });
 
 app.Run();
@@ -106,7 +104,7 @@ bool IsTokenValid(string token)
     {
         return false;
     }
-    
+
     var issuedAt = payload
         .GetProperty("iat")
         .GetInt64();
@@ -115,7 +113,7 @@ bool IsTokenValid(string token)
     {
         return false;
     }
-    
+
     var expireAt = payload
         .GetProperty("exp")
         .GetInt64();
@@ -124,8 +122,7 @@ bool IsTokenValid(string token)
     {
         return false;
     }
-    
-    
+
 
     return true;
 }
