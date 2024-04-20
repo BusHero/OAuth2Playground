@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -20,10 +21,11 @@ app.MapPost("/resource", async (
 {
     var token = await extractor.GetBearerToken(context);
     var bearerToken = GetParts(token);
+    var isTokenValid = IsTokenValid(token);
     return new Content
     {
         Token = token,
-        IsVerified = true,
+        IsVerified = isTokenValid,
     };
 });
 
@@ -36,7 +38,7 @@ BearerToken GetParts(string? token)
     {
         return new BearerToken();
     }
-    
+
     var parts = token.Split(".");
 
     if (parts.Length != 3)
@@ -54,6 +56,39 @@ BearerToken GetParts(string? token)
     };
 
     return bearerToken;
+}
+
+bool IsTokenValid(string token)
+{
+    if (string.IsNullOrEmpty(token))
+    {
+        return false;
+    }
+
+    var parts = token.Split('.');
+
+    if (parts.Length != 3)
+    {
+        return false;
+    }
+
+    if (string.IsNullOrEmpty(parts[2]))
+    {
+        return false;
+    }
+
+    var verified = HMACSHA256
+        .HashData(
+            Encoding.ASCII.GetBytes("secret"),
+            Encoding.ASCII.GetBytes($"{parts[0]}.{parts[1]}"));
+    var signature = Convert
+        .ToBase64String(verified)
+        .Replace("/", "_")
+        .Replace("=", "");
+    
+    var result = signature == parts[2];
+
+    return result;
 }
 
 public partial class Program;
@@ -122,6 +157,6 @@ internal class TokenExtractor(ILogger<TokenExtractor> logger)
 public class Content
 {
     public string? Token { get; set; }
-    
+
     public bool IsVerified { get; set; }
 }
