@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using AutoFixture.Xunit2;
@@ -134,24 +135,76 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public async Task JwtToken()
+    public async Task JwtSignedTokenIsVerified()
     {
-        var token = GetToken(
-            issuer: "http://localhost:9001");
+        var token = GetHmac256SignedToken(new Dictionary<string, object>
+        {
+            ["iss"] = "http://localhost:9001",
+            ["sub"] = "alice",
+            ["aud"] = "http://localhost:9002",
+            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
+            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
+            ["jti"] = Guid.NewGuid().ToString("N"),
+        }, "secret");
+
         _client.DefaultRequestHeaders.Authorization
             = new AuthenticationHeaderValue("Bearer", token);
 
         var result = await _client
             .PostAsync("/resource", null);
 
-        var content = await result.Content.ReadFromJsonAsync<BearerToken>();
+        var content = await result.Content.ReadFromJsonAsync<Content>();
 
         content!
-            .Content!
-            .Issuer
+            .IsVerified
             .Should()
-            .Be("http://localhost:9001");
+            .BeTrue();
     }
+    
+    [Fact]
+    public async Task JwtUnsignedTokenIsNotVerified()
+    {
+        var token = GetToken();
+
+        _client.DefaultRequestHeaders.Authorization
+            = new AuthenticationHeaderValue("Bearer", token);
+
+        var result = await _client
+            .PostAsync("/resource", null);
+
+        var content = await result.Content.ReadFromJsonAsync<Content>();
+
+        content!
+            .IsVerified
+            .Should()
+            .BeFalse();
+    }
+
+    private static string GetHmac256SignedToken(
+        Dictionary<string, object> payload,
+        string secret)
+    {
+        var payloadAsJson = JsonSerializer.Serialize(payload);
+        var headerAsJson = JsonSerializer.Serialize(new
+        {
+            typ = "JWT",
+            alg = "HS256",
+        });
+
+        var headerBase64 = Convert.ToBase64String(Encoding.ASCII.GetBytes(headerAsJson));
+        var payloadBase64 = Convert.ToBase64String(Encoding.ASCII.GetBytes(payloadAsJson));
+        var dataToSign = $"{headerBase64}.{payloadBase64}";
+
+        var encryptedData = HMACSHA256
+            .HashData(
+                Encoding.ASCII.GetBytes(secret),
+                Encoding.ASCII.GetBytes(dataToSign));
+
+        var signature = Convert.ToBase64String(encryptedData).Replace("/", "_").Replace("=", "");
+
+        return $"{headerBase64}.{payloadBase64}.{signature}";
+    }
+
 
     private static string GetToken(
         string? issuer = default)
@@ -183,9 +236,9 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     }
 }
 
-internal class Content
+public class Content
 {
-    public BearerToken BearerToken { get; set; } = null!;
-    
     public string? Token { get; set; }
+    
+    public bool IsVerified { get; set; }
 }

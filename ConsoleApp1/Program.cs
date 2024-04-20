@@ -22,10 +22,11 @@ string GetHmac256(string input, string secret)
         .HashData(
             Encoding.ASCII.GetBytes(secret),
             Encoding.ASCII.GetBytes(input));
-
+    
     var output = BitConverter
         .ToString(encryptedData)
         .Replace("-", "");
+    
     return output;
 }
 
