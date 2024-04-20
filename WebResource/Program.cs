@@ -20,10 +20,10 @@ app.MapPost("/resource", async (
 {
     var token = await extractor.GetBearerToken(context);
     var bearerToken = GetParts(token);
-    return new
+    return new Content
     {
-        BearerToken = bearerToken,
         Token = token,
+        IsVerified = true,
     };
 });
 
@@ -50,7 +50,7 @@ BearerToken GetParts(string? token)
     var bearerToken = new BearerToken
     {
         Header = JsonSerializer.Deserialize<Header>(header),
-        Content = JsonSerializer.Deserialize<Content>(content),
+        Payload = JsonSerializer.Deserialize<Payload>(content),
     };
 
     return bearerToken;
@@ -72,7 +72,7 @@ public class BearerToken
 {
     public Header? Header { get; set; }
 
-    public Content? Content { get; set; }
+    public Payload? Payload { get; set; }
 }
 
 public class Header
@@ -82,7 +82,7 @@ public class Header
     [JsonPropertyName("alg")] public string? Algorithm { get; set; }
 }
 
-public class Content
+public class Payload
 {
     [JsonPropertyName("iss")] public string? Issuer { get; set; }
 
@@ -117,4 +117,11 @@ internal class TokenExtractor(ILogger<TokenExtractor> logger)
             _ => null,
         };
     }
+}
+
+public class Content
+{
+    public string? Token { get; set; }
+    
+    public bool IsVerified { get; set; }
 }

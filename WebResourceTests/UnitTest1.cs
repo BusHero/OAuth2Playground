@@ -160,7 +160,7 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
             .Should()
             .BeTrue();
     }
-    
+
     [Fact]
     public async Task JwtUnsignedTokenIsNotVerified()
     {
@@ -234,11 +234,4 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
 
         return token;
     }
-}
-
-public class Content
-{
-    public string? Token { get; set; }
-    
-    public bool IsVerified { get; set; }
 }
