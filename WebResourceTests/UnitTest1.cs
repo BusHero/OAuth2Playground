@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -15,7 +14,7 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     private readonly HttpClient _client = factory.CreateDefaultClient();
 
     [Fact]
-    public async Task RightAuthorizationSchemeReturnsToken()
+    public async Task AuthorizationInHeader_Ok()
     {
         var token = GetHmac256SignedToken(new Dictionary<string, object>
         {
@@ -26,6 +25,7 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
             ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
             ["jti"] = Guid.NewGuid().ToString("N"),
         }, "secret");
+
         _client.DefaultRequestHeaders.Authorization
             = new AuthenticationHeaderValue("Bearer", token);
 
@@ -39,7 +39,7 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public async Task NoAuthHeaderReturnsNull()
+    public async Task NoAuthorization_Unauthroized()
     {
         var result = await _client
             .PostAsync("/resource", null);
@@ -51,31 +51,7 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     }
 
     [Theory, AutoData]
-    public async Task InvalidAuthReturnsNull(string scheme)
-    {
-        var token = GetHmac256SignedToken(new Dictionary<string, object>
-        {
-            ["iss"] = "http://localhost:9001",
-            ["sub"] = "alice",
-            ["aud"] = "http://localhost:9002",
-            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
-            ["jti"] = Guid.NewGuid().ToString("N"),
-        }, "secret");
-        _client.DefaultRequestHeaders.Authorization
-            = new AuthenticationHeaderValue(scheme, null);
-
-        var result = await _client
-            .PostAsync("/resource", null);
-
-        result
-            .StatusCode
-            .Should()
-            .Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Theory, AutoData]
-    public async Task WrongAuthSchemeReturnsNull(string scheme)
+    public async Task InvalidScheme_Unauthrorized(string scheme)
     {
         var token = GetHmac256SignedToken(new Dictionary<string, object>
         {
@@ -99,7 +75,7 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public async Task GetTokenFromBody()
+    public async Task TokenInBody_Ok()
     {
         var token = GetHmac256SignedToken(new Dictionary<string, object>
         {
@@ -110,7 +86,7 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
             ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
             ["jti"] = Guid.NewGuid().ToString("N"),
         }, "secret");
-        
+
         var result = await _client
             .PostAsync("/resource", new FormUrlEncodedContent([
                 new KeyValuePair<string, string>("access_token", token)
@@ -123,7 +99,7 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     }
 
     [Theory, AutoData]
-    public async Task NoTokenInBodyReturnsNull(string otherName)
+    public async Task NoTokenInBody_Unauthorized(string otherName)
     {
         var token = GetHmac256SignedToken(new Dictionary<string, object>
         {
@@ -146,7 +122,7 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public async Task GetTokenFromQueryParameters()
+    public async Task TokenInQueryParameters_Ok()
     {
         var token = GetHmac256SignedToken(new Dictionary<string, object>
         {
@@ -167,33 +143,9 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
             .Be(HttpStatusCode.OK);
     }
 
-    [Fact]
-    public async Task JwtSignedTokenIsVerified()
-    {
-        var token = GetHmac256SignedToken(new Dictionary<string, object>
-        {
-            ["iss"] = "http://localhost:9001",
-            ["sub"] = "alice",
-            ["aud"] = "http://localhost:9002",
-            ["iat"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-            ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
-            ["jti"] = Guid.NewGuid().ToString("N"),
-        }, "secret");
-
-        _client.DefaultRequestHeaders.Authorization
-            = new AuthenticationHeaderValue("Bearer", token);
-
-        var result = await _client
-            .PostAsync("/resource", null);
-
-        result
-            .StatusCode
-            .Should()
-            .Be(HttpStatusCode.OK);
-    }
 
     [Fact]
-    public async Task JwtUnsignedTokenIsNotVerified()
+    public async Task UnsignedToken_Unauthorized()
     {
         var token = GetToken();
 
@@ -210,7 +162,7 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public async Task ExpieredTokenIsInvalid()
+    public async Task ExpiredToken_Unauthorized()
     {
         var token = GetHmac256SignedToken(new Dictionary<string, object>
         {
@@ -227,15 +179,15 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
 
         var result = await _client
             .PostAsync("/resource", null);
-        
+
         result
             .StatusCode
             .Should()
             .Be(HttpStatusCode.Unauthorized);
     }
-    
+
     [Fact]
-    public async Task WrongAudienceIsInvalid()
+    public async Task WrongAudience_Unauthorized()
     {
         var token = GetHmac256SignedToken(new Dictionary<string, object>
         {
@@ -258,9 +210,9 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
             .Should()
             .Be(HttpStatusCode.Unauthorized);
     }
-    
+
     [Fact]
-    public async Task WrongIssuerIsInvalid()
+    public async Task WrongIssuer_Unauthorized()
     {
         var token = GetHmac256SignedToken(new Dictionary<string, object>
         {
@@ -283,9 +235,9 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
             .Should()
             .Be(HttpStatusCode.Unauthorized);
     }
-    
+
     [Fact]
-    public async Task IssuedAtInTheFutureIsNotVerified()
+    public async Task IssuedAtInTheFuture_Unauthorized()
     {
         var token = GetHmac256SignedToken(new Dictionary<string, object>
         {
