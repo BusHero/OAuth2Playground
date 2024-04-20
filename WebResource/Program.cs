@@ -96,6 +96,16 @@ bool IsTokenValid(string token)
 
     var payload = JsonDocument.Parse(payloadAsJson)
         .RootElement;
+
+    if (payload.GetProperty("iss").GetString() != "http://localhost:9001")
+    {
+        return false;
+    }
+
+    if (!payload.GetProperty("aud").GetString()!.Contains("http://localhost:9002"))
+    {
+        return false;
+    }
     
     var issuedAt = payload
         .GetProperty("iat")
