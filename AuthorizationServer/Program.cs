@@ -37,9 +37,9 @@ app.MapGet("/authorize", (
     };
 });
 
-app.MapPost("/approve", (
+app.MapPost("/approve", async (
         [FromForm] bool approve,
-        [FromForm(Name = "response_type")] string responseType) =>
+        [FromForm(Name = "response_type")] string? responseType) =>
     {
         if (!approve)
         {
@@ -48,8 +48,9 @@ app.MapPost("/approve", (
 
         if (responseType != "code")
         {
-            return Results.BadRequest();
+            return Results.Redirect("http://localhost:9000/callback?error=unsupported_response_type");
         }
+
 
         return Results.Ok();
     })
