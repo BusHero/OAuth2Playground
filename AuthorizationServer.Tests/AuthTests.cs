@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using FluentAssertions;
 using Flurl.Http;
+using Flurl.Http.Testing;
 
 namespace AuthorizationServer.Tests;
 
@@ -135,6 +136,38 @@ public sealed class AuthTests(
             .Should()
             .Be(400);
     }
+
+    [Fact]
+    public async Task Approve_NoResponseType_BadRequest()
+    {
+        var body = GetApproveContent();
+        body.Remove("response_type");
+
+        var result = await _client
+            .CreateApproveEndpoint()
+            .SendAsync(HttpMethod.Post, body.CreateFormUrlEncodedContent());
+
+        result
+            .StatusCode
+            .Should()
+            .Be(400);
+    }
+
+    // [Fact]
+    // public async Task Approve_WrongResponseType_BadRequest()
+    // {
+    //     var body = GetApproveContent();
+    //     body["response_type"] = "some-other-response-type";
+    //
+    //     var result = await _client
+    //         .CreateApproveEndpoint()
+    //         .SendAsync(HttpMethod.Post, body.CreateFormUrlEncodedContent());
+    //
+    //     result
+    //         .StatusCode
+    //         .Should()
+    //         .Be(400);
+    // }
 
     private Dictionary<string, string> GetApproveContent()
     {

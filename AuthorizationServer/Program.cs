@@ -38,13 +38,19 @@ app.MapGet("/authorize", (
 });
 
 app.MapPost("/approve", (
-        [FromForm] bool approve) =>
+        [FromForm] bool approve,
+        [FromForm(Name = "response_type")] string responseType) =>
     {
         if (!approve)
         {
             return Results.BadRequest();
         }
-        
+
+        if (responseType != "code")
+        {
+            return Results.BadRequest();
+        }
+
         return Results.Ok();
     })
     .DisableAntiforgery();
@@ -64,6 +70,5 @@ internal sealed class Client
 
 class Request
 {
-    [Required]
-    public bool? Approve { get; set; }
+    [Required] public bool? Approve { get; set; }
 }
