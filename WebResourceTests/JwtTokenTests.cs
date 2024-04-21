@@ -55,7 +55,7 @@ public class JwtTokenTests
         return $"{headerBase64}.{payloadBase64}.{signature}";
     }
 
-    public string GetCredibleTokenImplementation(
+    private string GetCredibleTokenImplementation(
         Dictionary<string, object> payload,
         string key)
     {
