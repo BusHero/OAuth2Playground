@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,18 +27,27 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapGet("/authorize", (
-    [FromQuery(Name = "client_id")]
-    string clientId) =>
+    [FromQuery(Name = "client_id")] string clientId,
+    [FromQuery(Name = "redirect_uri")] string redirectUri) =>
 {
-    var client = clients.FirstOrDefault(x => x.ClientId == clientId);
-
-    if (client is null)
+    return clients.FirstOrDefault(x => x.ClientId == clientId) switch
     {
-        return Results.BadRequest();
-    }
-    
-    return Results.Ok();
+        { RedirectUris: var redirectUris } when redirectUris.Contains(redirectUri) => Results.Ok(),
+        _ => Results.BadRequest()
+    };
 });
+
+app.MapPost("/approve", (
+        [FromForm] bool approve) =>
+    {
+        if (!approve)
+        {
+            return Results.BadRequest();
+        }
+        
+        return Results.Ok();
+    })
+    .DisableAntiforgery();
 
 app.Run();
 
@@ -50,4 +60,10 @@ internal sealed class Client
     public required string ClientSecret { get; init; }
 
     public required string[] RedirectUris { get; init; }
+}
+
+class Request
+{
+    [Required]
+    public bool? Approve { get; set; }
 }
