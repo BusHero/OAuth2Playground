@@ -218,6 +218,26 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
             .Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task NoScope_Unauthorized()
+    {
+        var payload = GetValidPayload();
+        payload.Remove("scope");
+
+        var token = payload.CreateHmac256SignedToken("secret");
+
+        _client.DefaultRequestHeaders.Authorization
+            = new AuthenticationHeaderValue("Bearer", token);
+
+        var result = await _client
+            .PostAsync("/resource", null);
+
+        result
+            .StatusCode
+            .Should()
+            .Be(HttpStatusCode.Unauthorized);
+    }
+
     private static Dictionary<string, object> GetValidPayload() => new()
     {
         ["iss"] = "http://localhost:9001",
@@ -226,25 +246,28 @@ public class UnitTest1(WebApplicationFactory<Program> factory)
         ["iat"] = DateTimeOffset.Now.AddMinutes(-1).ToUnixTimeSeconds(),
         ["exp"] = DateTimeOffset.Now.AddMinutes(5).ToUnixTimeSeconds(),
         ["jti"] = Guid.NewGuid().ToString("N"),
+        ["scope"] = "api1",
     };
 }
 
 public static class StringExtensions
 {
-    private static string ToBase64String(this byte[] bytes)
-    {
-        var result = Convert.ToBase64String(bytes);
-        return result;
-    }
+    private static string ToBase64String(this byte[] bytes) 
+        => Convert.ToBase64String(bytes);
 
-    private static string ToBase64String(this string input)
-    {
-        var result = Encoding
+    private static string ToBase64String(this string input) =>
+        Encoding
             .UTF8
             .GetBytes(input)
             .ToBase64String();
-        return result;
-    }
+
+    private static byte[] GetBytes(this string input, Encoding encoding) 
+        => encoding.GetBytes(input);
+
+    private static string ToBase64String(this object @object) =>
+        JsonSerializer
+            .Serialize(@object)
+            .ToBase64String();
 
     public static string CreateHmac256SignedToken(
         this Dictionary<string, object> payload,
@@ -256,20 +279,16 @@ public static class StringExtensions
             ["alg"] = "none",
         };
 
-        var headerBase64 = JsonSerializer
-            .Serialize(header)
+        var headerBase64 = header
             .ToBase64String();
 
-        var payloadBase64 = JsonSerializer
-            .Serialize(payload)
+        var payloadBase64 = payload
             .ToBase64String();
-
-        var dataToSign = $"{headerBase64}.{payloadBase64}";
 
         var signature = HMACSHA256
             .HashData(
-                Encoding.ASCII.GetBytes(secret),
-                Encoding.ASCII.GetBytes(dataToSign))
+                secret.GetBytes(Encoding.ASCII),
+                $"{headerBase64}.{payloadBase64}".GetBytes(Encoding.ASCII))
             .ToBase64String()
             .Replace("/", "_")
             .Replace("=", "");
@@ -286,12 +305,10 @@ public static class StringExtensions
             ["alg"] = "none",
         };
 
-        var headerBase64 = JsonSerializer
-            .Serialize(header)
+        var headerBase64 = header
             .ToBase64String();
 
-        var payloadBase64 = JsonSerializer
-            .Serialize(payload)
+        var payloadBase64 = payload
             .ToBase64String();
 
         var token = $"{headerBase64}.{payloadBase64}.";

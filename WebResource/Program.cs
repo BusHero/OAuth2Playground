@@ -20,7 +20,6 @@ app.MapPost("/resource", async (
     HttpContext context) =>
 {
     var token = await extractor.GetBearerToken(context);
-    var bearerToken = GetParts(token);
     var isTokenValid = IsTokenValid(token);
     return isTokenValid 
         ? Results.Ok(new { Message = "Hello, World!", }) 
@@ -30,33 +29,7 @@ app.MapPost("/resource", async (
 app.Run();
 return;
 
-BearerToken GetParts(string? token)
-{
-    if (token is null)
-    {
-        return new BearerToken();
-    }
-
-    var parts = token.Split(".");
-
-    if (parts.Length != 3)
-    {
-        return new BearerToken();
-    }
-
-    var header = parts[0].FromBase64();
-    var content = parts[1].FromBase64();
-
-    var bearerToken = new BearerToken
-    {
-        Header = JsonSerializer.Deserialize<Header>(header),
-        Payload = JsonSerializer.Deserialize<Payload>(content),
-    };
-
-    return bearerToken;
-}
-
-bool IsTokenValid(string token)
+bool IsTokenValid(string? token)
 {
     if (string.IsNullOrEmpty(token))
     {
@@ -124,6 +97,22 @@ bool IsTokenValid(string token)
         return false;
     }
 
+    if (!payload.TryGetProperty("scope", out var scopeProperty))
+    {
+        return false;
+    }
+
+    var scope = scopeProperty.GetString();
+
+    if (string.IsNullOrEmpty(scope))
+    {
+        return false;
+    }
+
+    if (!scope.Split(' ').Contains("api1"))
+    {
+        return false;
+    }
 
     return true;
 }
