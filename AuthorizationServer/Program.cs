@@ -3,15 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
-Client[] clients =
-[
-    new Client
-    {
-        ClientId = "oauth-client-1",
-        ClientSecret = "secret",
-        RedirectUris = ["http://localhost:9000/callback"]
-    },
-];
+builder.Services
+    .AddSingleton<IClientRepository, InMemoryClientRepository>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -27,12 +20,13 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapGet("/authorize", (
+    [FromServices] IClientRepository repository,
     [FromQuery(Name = "client_id")] string clientId,
     [FromQuery(Name = "redirect_uri")] string redirectUri) =>
 {
-    return clients.FirstOrDefault(x => x.ClientId == clientId) switch
+    return repository.FindClientById(clientId) switch
     {
-        { RedirectUris: var redirectUris } when redirectUris.Contains(redirectUri) => Results.Ok(),
+        { RedirectUris: var redirectUris } when redirectUris.Contains(new Uri(redirectUri)) => Results.Ok(),
         _ => Results.BadRequest()
     };
 });
@@ -60,16 +54,36 @@ app.Run();
 
 public abstract partial class Program;
 
-internal sealed class Client
+public sealed class Client
 {
     public required string ClientId { get; init; }
 
     public required string ClientSecret { get; init; }
 
-    public required string[] RedirectUris { get; init; }
+    public required Uri[] RedirectUris { get; init; }
 }
 
 class Request
 {
     [Required] public bool? Approve { get; set; }
+}
+
+public interface IClientRepository
+{
+    Client? FindClientById(string clientId);
+}
+
+public class InMemoryClientRepository : IClientRepository
+{
+    private readonly List<Client> _clients = [];
+
+    public Client? FindClientById(string clientId)
+    {
+        return _clients.FirstOrDefault(x => x.ClientId == clientId);
+    }
+
+    public void AddClient(Client client)
+    {
+        _clients.Add(client);
+    }
 }
