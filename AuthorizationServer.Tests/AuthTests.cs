@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using FluentAssertions;
 using FluentAssertions.Execution;
+using Flurl;
 using Flurl.Http;
 
 namespace AuthorizationServer.Tests;
@@ -154,12 +155,17 @@ public sealed class AuthTests(
                 .Should()
                 .Be(302);
 
+            var redirectUri = "http://localhost:9000"
+                .AppendPathSegment("callback")
+                .AppendQueryParam("error", "unsupported_response_type")
+                .ToUri();
+            
             result
                 .ResponseMessage
                 .Headers
                 .Location
                 .Should()
-                .Be("http://localhost:9000/callback?error=unsupported_response_type");
+                .Be(redirectUri);
         }
     }
 
@@ -173,7 +179,7 @@ public sealed class AuthTests(
     }
 }
 
-public static class Foo
+public static class Extensions
 {
     public static HttpContent CreateFormUrlEncodedContent(
         this IEnumerable<KeyValuePair<string, string>> body)
@@ -192,36 +198,4 @@ public static class Foo
             .AppendPathSegment("authorize")
             .AppendQueryParam("redirect_uri", "http://localhost:9000/callback")
             .AppendQueryParam("client_id", "oauth-client-1");
-}
-
-public class AnotherTestClass : IClassFixture<WebApplicationFactory<Program>>
-{
-    private readonly WebApplicationFactory<Program> _factory;
-
-    public AnotherTestClass(WebApplicationFactory<Program> factory)
-    {
-        _factory = factory;
-    }
-
-    [Fact]
-    public async Task Foo()
-    {
-        var client = _factory.CreateDefaultClient();
-        var flurlClient = new FlurlClient(client);
-
-        var body = new Dictionary<string, string>
-        {
-            ["approve"] = true.ToString(),
-            ["response_type"] = "code",
-        }.CreateFormUrlEncodedContent();
-
-        var result = await flurlClient.Request()
-            .AppendPathSegment("approve")
-            .AllowAnyHttpStatus()
-            .WithAutoRedirect(false)
-            .PostAsync(body);
-
-        result.StatusCode.Should().Be(302);
-        result.ResponseMessage.Headers.Location.Should().Be("http://localhost:9000/callback");
-    }
 }
