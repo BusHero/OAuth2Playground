@@ -1,10 +1,14 @@
 using System.ComponentModel.DataAnnotations;
+using AuthorizationServer;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
     .AddSingleton<IClientRepository, InMemoryClientRepository>();
+
+builder.Services
+    .AddSingleton<IRequestsRepository, InMemoryRequestsRepository>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -20,15 +24,22 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapGet("/authorize", (
-    [FromServices] IClientRepository repository,
+    HttpContext context,
+    [FromServices] IClientRepository clientRepository,
+    [FromServices] IRequestsRepository requestsRepository,
     [FromQuery(Name = "client_id")] string clientId,
-    [FromQuery(Name = "redirect_uri")] string redirectUri) =>
+    [FromQuery(Name = "redirect_uri")] Uri redirectUri) =>
 {
-    return repository.FindClientById(clientId) switch
+    var client = clientRepository.FindClientById(clientId);
+    if (client != null && client.RedirectUris.Contains(redirectUri))
     {
-        { RedirectUris: var redirectUris } when redirectUris.Contains(new Uri(redirectUri)) => Results.Ok(),
-        _ => Results.BadRequest()
-    };
+        requestsRepository.Add(
+            Guid.NewGuid().ToString(),
+            context.Request.QueryString.ToString()[1..]);
+        return Results.Ok();
+    }
+
+    return Results.BadRequest();
 });
 
 app.MapPost("/approve", async (
@@ -44,7 +55,6 @@ app.MapPost("/approve", async (
         {
             return Results.Redirect("http://localhost:9000/callback?error=unsupported_response_type");
         }
-
 
         return Results.Ok();
     })
@@ -66,24 +76,4 @@ public sealed class Client
 class Request
 {
     [Required] public bool? Approve { get; set; }
-}
-
-public interface IClientRepository
-{
-    Client? FindClientById(string clientId);
-}
-
-public class InMemoryClientRepository : IClientRepository
-{
-    private readonly List<Client> _clients = [];
-
-    public Client? FindClientById(string clientId)
-    {
-        return _clients.FirstOrDefault(x => x.ClientId == clientId);
-    }
-
-    public void AddClient(Client client)
-    {
-        _clients.Add(client);
-    }
 }
