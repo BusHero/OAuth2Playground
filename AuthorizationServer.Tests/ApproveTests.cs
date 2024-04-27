@@ -180,19 +180,25 @@ public static class UriExtensions
     }
 }
 
-public sealed class UriAssertions(Uri? uri) : ReferenceTypeAssertions<Uri?, UriAssertions>(uri)
+public sealed class UriAssertions(Uri? uri) 
+    : ReferenceTypeAssertions<Uri?, UriAssertions>(uri)
 {
+    private readonly Uri? _uri = uri;
+    
     protected override string Identifier => "uri";
 
-    public AndConstraint<UriAssertions> HaveHost(string host)
+    public AndConstraint<UriAssertions> HaveHost(
+        string host, 
+        string because = "")
     {
-        uri.Should()
-            .NotBeNull()
-            .And
-            .Subject!
-            .Host
-            .Should()
-            .Be(host);
+        Execute.Assertion
+            .ForCondition(_uri is not null)
+            .FailWith("You can't assert a uri if it is null {reason}")
+            .Then
+            .ForCondition(_uri!.Host == host)
+            .FailWith("Expected {context} to contain {0}, but found {1}",
+                host, 
+                _uri!.Host);
 
         return new AndConstraint<UriAssertions>(this);
     }
