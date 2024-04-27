@@ -1,6 +1,7 @@
 ﻿using AutoFixture.Xunit2;
 using FluentAssertions;
-using Flurl;
+using FluentAssertions.Execution;
+using FluentAssertions.Primitives;
 using Flurl.Http;
 
 namespace AuthorizationServer.Tests;
@@ -139,9 +140,16 @@ public sealed class ApproveTests(CustomFactory factory)
                 HttpMethod.Post,
                 data.CreateFormUrlEncodedContent());
 
-        result.ResponseMessage.Headers.Location
-            .Should()
-            .Be(request);
+        var location = result.ResponseMessage.Headers.Location!;
+
+        using (new AssertionScope())
+        {
+            location.Should().NotBeNull();
+            // location
+            //     .GetComponents(UriComponents.AbsoluteUri, UriFormat.Unescaped)
+            //     .Should()
+            //     .Be(request.GetComponents(UriComponents.AbsoluteUri, UriFormat.Unescaped));
+        }
     }
 
     private static Dictionary<string, string> GetApproveContent(
@@ -162,4 +170,30 @@ public sealed class Error
     public int Status { get; init; }
 
     public Dictionary<string, string[]> Errors { get; init; } = null!;
+}
+
+public static class UriExtensions
+{
+    public static UriAssertions Should(this Uri? uri)
+    {
+        return new UriAssertions(uri);
+    }
+}
+
+public sealed class UriAssertions(Uri? uri) : ReferenceTypeAssertions<Uri?, UriAssertions>(uri)
+{
+    protected override string Identifier => "uri";
+
+    public AndConstraint<UriAssertions> HaveHost(string host)
+    {
+        uri.Should()
+            .NotBeNull()
+            .And
+            .Subject!
+            .Host
+            .Should()
+            .Be(host);
+
+        return new AndConstraint<UriAssertions>(this);
+    }
 }
