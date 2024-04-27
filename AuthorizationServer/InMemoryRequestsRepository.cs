@@ -15,4 +15,10 @@ public class InMemoryRequestsRepository : IRequestsRepository
     {
         _requests[requestId] = requestQueryString;
     }
+
+    public string? GetRequest(string requestId)
+    {
+        _requests.TryGetValue(requestId, out var query);
+        return query;
+    }
 }

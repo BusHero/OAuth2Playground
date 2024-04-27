@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using AuthorizationServer;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,7 +10,7 @@ builder.Services
 
 builder.Services
     .AddSingleton<IRequestsRepository, InMemoryRequestsRepository>();
-
+builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -31,34 +32,37 @@ app.MapGet("/authorize", (
     [FromQuery(Name = "redirect_uri")] Uri redirectUri) =>
 {
     var client = clientRepository.FindClientById(clientId);
-    if (client != null && client.RedirectUris.Contains(redirectUri))
+    if (client == null || !client.RedirectUris.Contains(redirectUri))
     {
-        requestsRepository.Add(
-            Guid.NewGuid().ToString(),
-            context.Request.QueryString.ToString()[1..]);
-        return Results.Ok();
+        return Results.BadRequest();
     }
 
-    return Results.BadRequest();
+    requestsRepository.Add(
+        Guid.NewGuid().ToString(),
+        context.Request.QueryString.ToString()[1..]);
+
+    return Results.Ok();
 });
 
 app.MapPost("/approve", async (
-        [FromForm] bool approve,
-        [FromForm(Name = "response_type")] string? responseType) =>
+            [FromForm(Name = "reqId")] string? requestId,
+            [FromServices] IRequestsRepository requestRepository)
+        =>
     {
-        if (!approve)
+        if (requestId is null)
         {
             return Results.BadRequest();
         }
 
-        if (responseType != "code")
+        if (requestRepository.GetRequest(requestId) is null)
         {
-            return Results.Redirect("http://localhost:9000/callback?error=unsupported_response_type");
+            return Results.BadRequest();
         }
 
         return Results.Ok();
     })
-    .DisableAntiforgery();
+    .DisableAntiforgery()
+    .Finally(x => { });
 
 app.Run();
 

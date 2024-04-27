@@ -1,6 +1,5 @@
-﻿using FluentAssertions;
-using FluentAssertions.Execution;
-using Flurl;
+﻿using AutoFixture.Xunit2;
+using FluentAssertions;
 using Flurl.Http;
 
 namespace AuthorizationServer.Tests;
@@ -16,15 +15,20 @@ public sealed class ApproveTests(CustomFactory factory)
 
     private readonly InMemoryRequestsRepository _requestsRepository
         = factory.RequestsRepository;
-    
-    [Fact]
-    public async Task Approve_Ok()
+
+    [Theory, AutoData]
+    public async Task Approve_RequiredId_Ok(string requestId, string request)
     {
+        _requestsRepository.Add(requestId, request);
+        
         var result = await _client
             .CreateApproveEndpoint()
             .SendAsync(
                 HttpMethod.Post,
-                GetApproveContent().CreateFormUrlEncodedContent());
+                new Dictionary<string, string>
+                {
+                    ["reqId"] = requestId,
+                }.CreateFormUrlEncodedContent());
 
         result
             .StatusCode
@@ -32,15 +36,17 @@ public sealed class ApproveTests(CustomFactory factory)
             .Be(200);
     }
 
-    [Fact]
-    public async Task Approve_NoApproveField_BadRequest()
+    [Theory, AutoData]
+    public async Task Approve_NonExistingReqId_BadRequest(string requestId)
     {
-        var body = GetApproveContent();
-        body.Remove("approve");
-
         var result = await _client
             .CreateApproveEndpoint()
-            .SendAsync(HttpMethod.Post, body.CreateFormUrlEncodedContent());
+            .SendAsync(
+                HttpMethod.Post,
+                new Dictionary<string, string>
+                {
+                    ["reqId"] = requestId,
+                }.CreateFormUrlEncodedContent());
 
         result
             .StatusCode
@@ -49,66 +55,34 @@ public sealed class ApproveTests(CustomFactory factory)
     }
 
     [Fact]
-    public async Task Approve_NoApproval_BadRequest()
+    public async Task Approve_NoBody_InternalServerError()
     {
-        var body = GetApproveContent();
-        body["approve"] = "false";
+        var result = await _client
+            .Request()
+            .AppendPathSegment("approve")
+            .WithAutoRedirect(false)
+            .AllowAnyHttpStatus()
+            .SendAsync(HttpMethod.Post);
 
+        result
+            .StatusCode
+            .Should()
+            .Be(500);
+    }
+
+    [Fact]
+    public async Task Approve_NoRequiredId_BadRequest()
+    {
         var result = await _client
             .CreateApproveEndpoint()
-            .SendAsync(HttpMethod.Post, body.CreateFormUrlEncodedContent());
+            .SendAsync(
+                HttpMethod.Post,
+                new Dictionary<string, string>().CreateFormUrlEncodedContent());
 
         result
             .StatusCode
             .Should()
             .Be(400);
-    }
-
-    [Fact]
-    public async Task Approve_NoBoolean_BadRequest()
-    {
-        var body = GetApproveContent();
-        body["approve"] = "asdasd";
-
-        var result = await _client
-            .CreateApproveEndpoint()
-            .SendAsync(HttpMethod.Post, body.CreateFormUrlEncodedContent());
-
-        result
-            .StatusCode
-            .Should()
-            .Be(400);
-    }
-
-    [Fact]
-    public async Task Approve_WrongResponseType_RedirectsToExpectedUri()
-    {
-        var body = GetApproveContent();
-        body["response_type"] = "something-else";
-
-        var result = await _client
-            .CreateApproveEndpoint()
-            .PostAsync(body.CreateFormUrlEncodedContent());
-
-        using (new AssertionScope())
-        {
-            result
-                .StatusCode
-                .Should()
-                .Be(302);
-
-            var redirectUri = "http://localhost:9000"
-                .AppendPathSegment("callback")
-                .AppendQueryParam("error", "unsupported_response_type")
-                .ToUri();
-
-            result
-                .ResponseMessage
-                .Headers
-                .Location
-                .Should()
-                .Be(redirectUri);
-        }
     }
 
     private Dictionary<string, string> GetApproveContent()
