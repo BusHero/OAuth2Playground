@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using AuthorizationServer;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,18 +44,23 @@ app.MapGet("/authorize", (
 });
 
 app.MapPost("/approve", async (
-            [FromForm(Name = "reqId")] string? requestId,
-            [FromServices] IRequestsRepository requestRepository)
-        =>
+        [FromForm(Name = "reqId")] string? requestId,
+        [FromServices] IRequestsRepository requestRepository) =>
     {
         if (requestId is null)
         {
-            return Results.BadRequest();
+            return Results.BadRequest(new
+            {
+                Message = "Missing requestId",
+            });
         }
 
         if (requestRepository.GetRequest(requestId) is null)
         {
-            return Results.BadRequest();
+            return Results.BadRequest(new
+            {
+                Message = "Unknown requestId",
+            });
         }
 
         return Results.Ok();

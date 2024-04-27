@@ -20,7 +20,7 @@ public sealed class ApproveTests(CustomFactory factory)
     public async Task Approve_RequiredId_Ok(string requestId, string request)
     {
         _requestsRepository.Add(requestId, request);
-        
+
         var result = await _client
             .CreateApproveEndpoint()
             .SendAsync(
@@ -54,6 +54,26 @@ public sealed class ApproveTests(CustomFactory factory)
             .Be(400);
     }
 
+    [Theory, AutoData]
+    public async Task Approve_NonExistingReqId_ExpectedMessage(string requestId)
+    {
+        var result = await _client
+            .CreateApproveEndpoint()
+            .SendAsync(
+                HttpMethod.Post,
+                new Dictionary<string, string>
+                {
+                    ["reqId"] = requestId,
+                }.CreateFormUrlEncodedContent());
+
+        var result2 = await result.GetJsonAsync<Errors>();
+
+        result2
+            .Message
+            .Should()
+            .Be("Unknown requestId");
+    }
+
     [Fact]
     public async Task Approve_NoBody_InternalServerError()
     {
@@ -85,6 +105,23 @@ public sealed class ApproveTests(CustomFactory factory)
             .Be(400);
     }
 
+    [Fact]
+    public async Task Approve_NoRequiredId_ReturnsError()
+    {
+        var result = await _client
+            .CreateApproveEndpoint()
+            .SendAsync(
+                HttpMethod.Post,
+                new Dictionary<string, string>().CreateFormUrlEncodedContent());
+
+        var result2 = await result.GetJsonAsync<Errors>();
+
+        result2
+            .Message
+            .Should()
+            .Be("Missing requestId");
+    }
+
     private Dictionary<string, string> GetApproveContent()
     {
         return new Dictionary<string, string>()
@@ -93,4 +130,9 @@ public sealed class ApproveTests(CustomFactory factory)
             ["response_type"] = "code",
         };
     }
+}
+
+public class Errors
+{
+    public string Message { get; set; }
 }
