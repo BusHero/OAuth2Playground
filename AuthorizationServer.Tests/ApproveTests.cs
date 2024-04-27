@@ -1,5 +1,6 @@
 ﻿using AutoFixture.Xunit2;
 using FluentAssertions;
+using Flurl;
 using Flurl.Http;
 
 namespace AuthorizationServer.Tests;
@@ -17,7 +18,9 @@ public sealed class ApproveTests(CustomFactory factory)
         = factory.RequestsRepository;
 
     [Theory, AutoData]
-    public async Task Approve_RequiredId_Ok(string requestId, string request)
+    public async Task Approve_RequiredId_Ok(
+        string requestId,
+        string request)
     {
         _requestsRepository.Add(requestId, request);
 
@@ -25,10 +28,7 @@ public sealed class ApproveTests(CustomFactory factory)
             .CreateApproveEndpoint()
             .SendAsync(
                 HttpMethod.Post,
-                new Dictionary<string, string>
-                {
-                    ["reqId"] = requestId,
-                }.CreateFormUrlEncodedContent());
+                GetApproveContent(requestId).CreateFormUrlEncodedContent());
 
         result
             .StatusCode
@@ -37,16 +37,14 @@ public sealed class ApproveTests(CustomFactory factory)
     }
 
     [Theory, AutoData]
-    public async Task Approve_NonExistingReqId_BadRequest(string requestId)
+    public async Task Approve_NonExistingReqId_BadRequest(
+        string requestId)
     {
         var result = await _client
             .CreateApproveEndpoint()
             .SendAsync(
                 HttpMethod.Post,
-                new Dictionary<string, string>
-                {
-                    ["reqId"] = requestId,
-                }.CreateFormUrlEncodedContent());
+                GetApproveContent(requestId).CreateFormUrlEncodedContent());
 
         result
             .StatusCode
@@ -55,23 +53,18 @@ public sealed class ApproveTests(CustomFactory factory)
     }
 
     [Theory, AutoData]
-    public async Task Approve_NonExistingReqId_ExpectedMessage(string requestId)
+    public async Task Approve_NonExistingReqId_ExpectedMessage(
+        string requestId)
     {
         var result = await _client
             .CreateApproveEndpoint()
             .SendAsync(
                 HttpMethod.Post,
-                new Dictionary<string, string>
-                {
-                    ["reqId"] = requestId,
-                }.CreateFormUrlEncodedContent());
+                GetApproveContent(requestId).CreateFormUrlEncodedContent());
 
-        var result2 = await result.GetJsonAsync<Errors>();
+        var result2 = await result.GetJsonAsync<Error>();
 
-        result2
-            .Message
-            .Should()
-            .Be("Unknown requestId");
+        result2.Errors.Should().ContainKey("reqId");
     }
 
     [Fact]
@@ -90,14 +83,18 @@ public sealed class ApproveTests(CustomFactory factory)
             .Be(500);
     }
 
-    [Fact]
-    public async Task Approve_NoRequiredId_BadRequest()
+    [Theory, AutoData]
+    public async Task Approve_NoRequiredId_BadRequest(
+        string requestId)
     {
+        var data = GetApproveContent(requestId);
+        data.Remove("reqId");
+        
         var result = await _client
             .CreateApproveEndpoint()
             .SendAsync(
                 HttpMethod.Post,
-                new Dictionary<string, string>().CreateFormUrlEncodedContent());
+                data.CreateFormUrlEncodedContent());
 
         result
             .StatusCode
@@ -105,34 +102,64 @@ public sealed class ApproveTests(CustomFactory factory)
             .Be(400);
     }
 
-    [Fact]
-    public async Task Approve_NoRequiredId_ReturnsError()
+    [Theory, AutoData]
+    public async Task Approve_NoApprove_Ok(
+        string requestId,
+        string request)
     {
+        _requestsRepository.Add(requestId, request);
+        var data = GetApproveContent(requestId);
+        data.Remove("approve");
+
         var result = await _client
             .CreateApproveEndpoint()
             .SendAsync(
                 HttpMethod.Post,
-                new Dictionary<string, string>().CreateFormUrlEncodedContent());
+                data.CreateFormUrlEncodedContent());
 
-        var result2 = await result.GetJsonAsync<Errors>();
-
-        result2
-            .Message
+        result
+            .StatusCode
             .Should()
-            .Be("Missing requestId");
+            .Be(302);
+    }
+    
+    [Theory, AutoData]
+    public async Task Approve_NoApprove_Redirects(
+        string requestId,
+        Uri request)
+    {
+        _requestsRepository.Add(requestId, request.ToString());
+        var data = GetApproveContent(requestId);
+        data.Remove("approve");
+
+        var result = await _client
+            .CreateApproveEndpoint()
+            .WithAutoRedirect(false)
+            .SendAsync(
+                HttpMethod.Post,
+                data.CreateFormUrlEncodedContent());
+
+        result.ResponseMessage.Headers.Location
+            .Should()
+            .Be(request);
     }
 
-    private Dictionary<string, string> GetApproveContent()
+    private static Dictionary<string, string> GetApproveContent(
+        string requestId)
     {
-        return new Dictionary<string, string>()
+        return new Dictionary<string, string>
         {
-            ["approve"] = "true",
-            ["response_type"] = "code",
+            ["reqId"] = requestId,
+            ["approve"] = "code",
         };
     }
 }
 
-public class Errors
+public sealed class Error
 {
-    public string Message { get; set; }
+    public string Title { get; init; } = null!;
+
+    public int Status { get; init; }
+
+    public Dictionary<string, string[]> Errors { get; init; } = null!;
 }

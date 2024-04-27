@@ -1,11 +1,12 @@
-using System.ComponentModel.DataAnnotations;
 using AuthorizationServer;
 using Microsoft.AspNetCore.Mvc;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
     .AddSingleton<IClientRepository, InMemoryClientRepository>();
+builder.Services.AddTransient<IValidator<Request?>, RequestValidator>();
 
 builder.Services
     .AddSingleton<IRequestsRepository, InMemoryRequestsRepository>();
@@ -44,44 +45,35 @@ app.MapGet("/authorize", (
 });
 
 app.MapPost("/approve", async (
-        [FromForm(Name = "reqId")] string? requestId,
+        [AsParameters] Request input,
         [FromServices] IRequestsRepository requestRepository) =>
     {
-        if (requestId is null)
+        var request = requestRepository.GetRequest(input.RequestId);
+        if (request is null)
         {
-            return Results.BadRequest(new
+            return Results.ValidationProblem(new Dictionary<string, string[]>
             {
-                Message = "Missing requestId",
+                ["reqId"] = ["Unknown requestId"]
             });
         }
 
-        if (requestRepository.GetRequest(requestId) is null)
+        if (input.Approve is not "code")
         {
-            return Results.BadRequest(new
-            {
-                Message = "Unknown requestId",
-            });
+            return Results.Redirect(request);
         }
 
         return Results.Ok();
     })
     .DisableAntiforgery()
-    .Finally(x => { });
+    .AddEndpointFilter<ValidationFilter<Request>>();
 
 app.Run();
 
 public abstract partial class Program;
 
-public sealed class Client
+internal sealed class Request
 {
-    public required string ClientId { get; init; }
+    [FromForm(Name = "reqId")] public required string RequestId { get; init; }
 
-    public required string ClientSecret { get; init; }
-
-    public required Uri[] RedirectUris { get; init; }
-}
-
-class Request
-{
-    [Required] public bool? Approve { get; set; }
+    [FromForm(Name = "approve")] public string? Approve { get; init; }
 }

@@ -6,8 +6,10 @@ namespace AuthorizationServer.Tests;
 
 public static class StringExtensions
 {
-    private static string ToBase64String(this byte[] bytes) 
+    private static string ToBase64String(this byte[] bytes)
         => Convert.ToBase64String(bytes);
+
+    public static Uri ToUri(this string uri) => new(uri);
 
     public static string ToBase64String(this string input) =>
         Encoding
@@ -15,7 +17,7 @@ public static class StringExtensions
             .GetBytes(input)
             .ToBase64String();
 
-    private static byte[] GetBytes(this string input, Encoding encoding) 
+    private static byte[] GetBytes(this string input, Encoding encoding)
         => encoding.GetBytes(input);
 
     private static string ToBase64String(this object @object) =>
