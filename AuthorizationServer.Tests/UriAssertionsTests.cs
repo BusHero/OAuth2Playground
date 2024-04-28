@@ -34,11 +34,12 @@ public class UriAssertionsTests
         string host)
     {
         var uri = uriBuilder.Uri;
-        var exc = uri.Invoking(x => x.Should().HaveHost(host))
+
+        var exception = uri.Invoking(x => x.Should().HaveHost(host))
             .Should()
-            .Throw<Exception>();
-            exc
-            .And
+            .Throw<Exception>()
+            .And;
+        exception
             .Message
             .Should()
             .Contain($"Expected host to contain \"{host}\", but found \"{uri.Host}\"");

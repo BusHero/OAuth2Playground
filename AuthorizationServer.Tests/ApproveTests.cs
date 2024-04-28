@@ -192,11 +192,12 @@ public sealed class UriAssertions(Uri? uri)
         string because = "")
     {
         Execute.Assertion
+            .BecauseOf(because)
             .ForCondition(_uri is not null)
             .FailWith("You can't assert a uri if it is null {reason}")
             .Then
             .ForCondition(_uri!.Host == host)
-            .FailWith("Expected {context} to contain {0}, but found {1}",
+            .FailWith("Expected host to contain {0}{reason}, but found {1}",
                 host, 
                 _uri!.Host);
 
