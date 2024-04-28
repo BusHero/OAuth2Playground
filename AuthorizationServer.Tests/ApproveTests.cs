@@ -123,7 +123,35 @@ public sealed class ApproveTests(CustomFactory factory)
             .Should()
             .Be(302);
     }
-    
+
+    [Theory, AutoData]
+    public async Task Approve_NoApprove_RedirectsToSetupUri(
+        string requestId,
+        Uri request)
+    {
+        _requestsRepository.Add(requestId, request.ToString());
+        var data = GetApproveContent(requestId);
+        data.Remove("approve");
+
+        var result = await _client
+            .CreateApproveEndpoint()
+            .WithAutoRedirect(false)
+            .SendAsync(
+                HttpMethod.Post,
+                data.CreateFormUrlEncodedContent());
+
+        var location = result.ResponseMessage.Headers.Location!;
+
+        using (new AssertionScope())
+        {
+            location.Should().NotBeNull();
+            var query = location.GetComponents(
+                UriComponents.Host | UriComponents.Scheme | UriComponents.Path | UriComponents.Port,
+                UriFormat.Unescaped);
+            query.Should().BeEquivalentTo(request.ToString());
+        }
+    }
+
     [Theory, AutoData]
     public async Task Approve_NoApprove_Redirects(
         string requestId,
@@ -145,10 +173,11 @@ public sealed class ApproveTests(CustomFactory factory)
         using (new AssertionScope())
         {
             location.Should().NotBeNull();
-            // location
-            //     .GetComponents(UriComponents.AbsoluteUri, UriFormat.Unescaped)
-            //     .Should()
-            //     .Be(request.GetComponents(UriComponents.AbsoluteUri, UriFormat.Unescaped));
+            var query = location.GetComponents(UriComponents.Query, UriFormat.Unescaped);
+            var foo = query.Split("&");
+            var arguments = foo[0].Split('=');
+            arguments[0].Should().Be("error");
+            arguments[1].Should().Be("access_denied");
         }
     }
 
@@ -158,7 +187,7 @@ public sealed class ApproveTests(CustomFactory factory)
         return new Dictionary<string, string>
         {
             ["reqId"] = requestId,
-            ["approve"] = "code",
+            ["approve"] = "approve",
         };
     }
 }

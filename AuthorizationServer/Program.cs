@@ -57,9 +57,14 @@ app.MapPost("/approve", async (
             });
         }
 
-        if (input.Approve is not "code")
+        if (input.Approve is null)
         {
-            return Results.Redirect(request);
+            var foo = new UriBuilder(request)
+            {
+                Query = "error=access_denied",
+            }.Uri.ToString();
+
+            return Results.Redirect(foo);
         }
 
         return Results.Ok();
