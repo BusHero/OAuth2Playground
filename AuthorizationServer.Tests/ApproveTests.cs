@@ -20,17 +20,17 @@ public sealed class ApproveTests(CustomFactory factory)
 
     [Theory, AutoData]
     public async Task Approve_RequiredId_Ok(
-        string requestId,
-        string clientId,
-        Uri request)
+        Client client)
     {
-        _requestsRepository.Add(requestId, clientId, request);
-
+        _clientRepository.AddClient(client);
+        
+        var response = await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
+        
         var result = await _client
             .CreateApproveEndpoint()
             .SendAsync(
                 HttpMethod.Post,
-                GetApproveContent(requestId).CreateFormUrlEncodedContent());
+                GetApproveContent(response.Code).CreateFormUrlEncodedContent());
 
         result
             .StatusCode
@@ -40,8 +40,12 @@ public sealed class ApproveTests(CustomFactory factory)
 
     [Theory, AutoData]
     public async Task Approve_NonExistingReqId_BadRequest(
+        Client client,
         string requestId)
     {
+        _clientRepository.AddClient(client);
+        
+        await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
         var result = await _client
             .CreateApproveEndpoint()
             .SendAsync(
@@ -56,8 +60,12 @@ public sealed class ApproveTests(CustomFactory factory)
 
     [Theory, AutoData]
     public async Task Approve_NonExistingReqId_ExpectedMessage(
+        Client client,
         string requestId)
     {
+        _clientRepository.AddClient(client);
+        await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
+        
         var result = await _client
             .CreateApproveEndpoint()
             .SendAsync(
@@ -87,9 +95,12 @@ public sealed class ApproveTests(CustomFactory factory)
 
     [Theory, AutoData]
     public async Task Approve_NoRequiredId_BadRequest(
-        string requestId)
+        Client client)
     {
-        var data = GetApproveContent(requestId);
+        _clientRepository.AddClient(client);
+        var response = await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
+        
+        var data = GetApproveContent(response.Code);
         data.Remove("reqId");
 
         var result = await _client
@@ -105,35 +116,12 @@ public sealed class ApproveTests(CustomFactory factory)
     }
 
     [Theory, AutoData]
-    public async Task Approve_NoApprove_Ok(
-        string requestId,
-        string clientId,
-        Uri redirectUri)
-    {
-        _requestsRepository.Add(requestId, clientId, redirectUri);
-        var data = GetApproveContent(requestId);
-        data.Remove("approve");
-
-        var result = await _client
-            .CreateApproveEndpoint()
-            .SendAsync(
-                HttpMethod.Post,
-                data.CreateFormUrlEncodedContent());
-
-        result
-            .StatusCode
-            .Should()
-            .Be(302);
-    }
-
-    [Theory, AutoData]
     public async Task Approve_NoApprove_RedirectsToSetupUri(
-        string requestId,
-        string clientId,
-        Uri request)
+        Client client)
     {
-        _requestsRepository.Add(requestId, clientId, request);
-        var data = GetApproveContent(requestId);
+        _clientRepository.AddClient(client);
+        var response = await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
+        var data = GetApproveContent(response.Code);
         data.Remove("approve");
 
         var result = await _client
@@ -152,20 +140,21 @@ public sealed class ApproveTests(CustomFactory factory)
                     UriComponents.Host | UriComponents.Scheme | UriComponents.Path | UriComponents.Port,
                     UriFormat.Unescaped)
                 .Should()
-                .BeEquivalentTo(request.ToString());
+                .BeEquivalentTo(client.RedirectUris[0].ToString());
         }
     }
 
     [Theory, AutoData]
     public async Task Approve_ResponseTypeIsNotCode_ReturnsError(
-        string requestId,
-        string clientId,
-        Uri request,
+        Client client,
         string responseType)
     {
-        _requestsRepository.Add(requestId, clientId, request);
-        var data = GetApproveContent(requestId);
-        data["response_type"] = responseType;
+        _clientRepository.AddClient(client);
+        var response = await (await _client
+            .CreateAuthorizationEndpoint(client)
+            .AppendQueryParam("response_type", responseType)
+            .GetAsync()).GetJsonAsync<Response>();
+        var data = GetApproveContent(response.Code);
 
         var result = await _client
             .CreateApproveEndpoint()
@@ -189,14 +178,16 @@ public sealed class ApproveTests(CustomFactory factory)
 
     [Theory, AutoData]
     public async Task Approve_NoApprove_Redirects(
-        string requestId,
-        string clientId,
-        Uri request)
+        Client client)
     {
-        _requestsRepository.Add(requestId, clientId, request);
-        var data = GetApproveContent(requestId);
-        data.Remove("approve");
+        _clientRepository.AddClient(client);
+        var response = await (await _client
+            .CreateAuthorizationEndpoint(client)
+            .GetAsync()).GetJsonAsync<Response>();
 
+        var data = GetApproveContent(response.Code);
+        data.Remove("approve");
+        
         var result = await _client
             .CreateApproveEndpoint()
             .WithAutoRedirect(false)
@@ -208,6 +199,7 @@ public sealed class ApproveTests(CustomFactory factory)
 
         using (new AssertionScope())
         {
+            result.StatusCode.Should().Be(302);
             location.Should().NotBeNull();
             var query = location.GetComponents(UriComponents.Query, UriFormat.Unescaped);
             var foo = query.Split("&");
@@ -268,4 +260,9 @@ public sealed class UriAssertions(Uri? uri)
 
         return new AndConstraint<UriAssertions>(this);
     }
+}
+
+public class Response
+{
+    public required string Code { get; init; }
 }

@@ -14,15 +14,6 @@ public class HttpMockTests
     {
         using var server = WireMockServer.Start(8888);
 
-        server.Given(
-                Request
-                    .Create()
-                    .WithPath(x => x.StartsWith("/hello"))
-                    .UsingGet())
-            .RespondWith(
-                Response
-                    .Create()
-                    .WithStatusCode(200));
 
         var client = new HttpClient()
         {

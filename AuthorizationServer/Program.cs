@@ -42,9 +42,10 @@ app.MapGet("/authorize", (
     requestsRepository.Add(
         code,
         clientId,
-        redirectUri);
+        redirectUri,
+        responseType);
 
-    return Results.Ok(code);
+    return Results.Ok(new { Code = code });
 });
 
 app.MapPost("/approve", async (
@@ -70,7 +71,7 @@ app.MapPost("/approve", async (
             return Results.Redirect(foo);
         }
 
-        if (input.Approve is not "code")
+        if (request.responseType is not "code")
         {
             var foo = new UriBuilder(request.RedirectUri)
             {
