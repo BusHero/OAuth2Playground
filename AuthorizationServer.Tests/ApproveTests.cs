@@ -1,4 +1,5 @@
-﻿using AutoFixture.Xunit2;
+﻿using System.Text.Json.Serialization;
+using AutoFixture.Xunit2;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using Flurl.Http;
@@ -18,13 +19,13 @@ public sealed class ApproveTests(CustomFactory factory)
         = factory.RequestsRepository;
 
     [Theory, AutoData]
-    public async Task Approve_RequiredId_Ok(
+    public async Task Approve_RequiredId_Redirect(
         Client client)
     {
         _clientRepository.AddClient(client);
-        
+
         var response = await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
-        
+
         var result = await _client
             .CreateApproveEndpoint()
             .SendAsync(
@@ -34,7 +35,35 @@ public sealed class ApproveTests(CustomFactory factory)
         result
             .StatusCode
             .Should()
-            .Be(200);
+            .Be(302);
+    }
+
+    [Theory, AutoData]
+    public async Task Approve_RequiredId_ContainsCodeAndState(
+        Client client)
+    {
+        _clientRepository.AddClient(client);
+
+        var response = await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
+
+        var result = await _client
+            .CreateApproveEndpoint()
+            .SendAsync(
+                HttpMethod.Post,
+                GetApproveContent(response.Code).CreateFormUrlEncodedContent());
+
+        var query = result.ResponseMessage.Headers.Location!.GetComponents(UriComponents.Query, UriFormat.Unescaped);
+
+        var parameters = query
+            .Split('&')
+            .Select(x => x.Split('='))
+            .ToDictionary(x => x[0], x => x[1]);
+
+        using (new AssertionScope())
+        {
+            parameters.Should().ContainKey("code");
+            parameters.Should().ContainKey("state");
+        }
     }
 
     [Theory, AutoData]
@@ -43,7 +72,7 @@ public sealed class ApproveTests(CustomFactory factory)
         string requestId)
     {
         _clientRepository.AddClient(client);
-        
+
         await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
         var result = await _client
             .CreateApproveEndpoint()
@@ -64,7 +93,7 @@ public sealed class ApproveTests(CustomFactory factory)
     {
         _clientRepository.AddClient(client);
         await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
-        
+
         var result = await _client
             .CreateApproveEndpoint()
             .SendAsync(
@@ -82,7 +111,7 @@ public sealed class ApproveTests(CustomFactory factory)
     {
         _clientRepository.AddClient(client);
         var response = await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
-        
+
         var data = GetApproveContent(response.Code);
         data.Remove("reqId");
 
@@ -170,7 +199,7 @@ public sealed class ApproveTests(CustomFactory factory)
 
         var data = GetApproveContent(response.Code);
         data.Remove("approve");
-        
+
         var result = await _client
             .CreateApproveEndpoint()
             .WithAutoRedirect(false)
@@ -207,7 +236,7 @@ public sealed class ApproveTests(CustomFactory factory)
             .Should()
             .Be(500);
     }
-    
+
     private static Dictionary<string, string> GetApproveContent(
         string requestId)
     {

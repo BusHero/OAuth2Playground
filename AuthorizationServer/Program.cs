@@ -81,7 +81,11 @@ app.MapPost("/approve", async (
             return Results.Redirect(foo);
         }
 
-        return Results.Ok();
+        var uri = new UriBuilder(request.RedirectUri)
+        {
+            Query = $"code={Guid.NewGuid()}&state={Guid.NewGuid()}"
+        }.Uri.ToString();
+        return Results.Redirect(uri);
     })
     .DisableAntiforgery()
     .AddEndpointFilter<ValidationFilter<Request>>();
