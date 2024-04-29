@@ -6,7 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
     .AddSingleton<IClientRepository, InMemoryClientRepository>();
-builder.Services.AddTransient<IValidator<Request?>, RequestValidator>();
+builder.Services.AddTransient<IValidator<Request>, RequestValidator>();
 
 builder.Services
     .AddSingleton<IRequestsRepository, InMemoryRequestsRepository>();
