@@ -1,7 +1,6 @@
 ﻿using AutoFixture.Xunit2;
 using FluentAssertions;
 using FluentAssertions.Execution;
-using FluentAssertions.Primitives;
 using Flurl.Http;
 
 namespace AuthorizationServer.Tests;
@@ -75,22 +74,6 @@ public sealed class ApproveTests(CustomFactory factory)
         var result2 = await result.GetJsonAsync<Error>();
 
         result2.Errors.Should().ContainKey("reqId");
-    }
-
-    [Fact]
-    public async Task Approve_NoBody_InternalServerError()
-    {
-        var result = await _client
-            .Request()
-            .AppendPathSegment("approve")
-            .WithAutoRedirect(false)
-            .AllowAnyHttpStatus()
-            .SendAsync(HttpMethod.Post);
-
-        result
-            .StatusCode
-            .Should()
-            .Be(500);
     }
 
     [Theory, AutoData]
@@ -209,6 +192,22 @@ public sealed class ApproveTests(CustomFactory factory)
         }
     }
 
+    [Fact]
+    public async Task Approve_NoBody_InternalServerError()
+    {
+        var result = await _client
+            .Request()
+            .AppendPathSegment("approve")
+            .WithAutoRedirect(false)
+            .AllowAnyHttpStatus()
+            .SendAsync(HttpMethod.Post);
+
+        result
+            .StatusCode
+            .Should()
+            .Be(500);
+    }
+    
     private static Dictionary<string, string> GetApproveContent(
         string requestId)
     {
@@ -218,51 +217,4 @@ public sealed class ApproveTests(CustomFactory factory)
             ["approve"] = "approve",
         };
     }
-}
-
-public sealed class Error
-{
-    public string Title { get; init; } = null!;
-
-    public int Status { get; init; }
-
-    public Dictionary<string, string[]> Errors { get; init; } = null!;
-}
-
-public static class UriExtensions
-{
-    public static UriAssertions Should(this Uri? uri)
-    {
-        return new UriAssertions(uri);
-    }
-}
-
-public sealed class UriAssertions(Uri? uri)
-    : ReferenceTypeAssertions<Uri?, UriAssertions>(uri)
-{
-    private readonly Uri? _uri = uri;
-
-    protected override string Identifier => "uri";
-
-    public AndConstraint<UriAssertions> HaveHost(
-        string host,
-        string because = "")
-    {
-        Execute.Assertion
-            .BecauseOf(because)
-            .ForCondition(_uri is not null)
-            .FailWith("You can't assert a uri if it is null {reason}")
-            .Then
-            .ForCondition(_uri!.Host == host)
-            .FailWith("Expected host to contain {0}{reason}, but found {1}",
-                host,
-                _uri!.Host);
-
-        return new AndConstraint<UriAssertions>(this);
-    }
-}
-
-public class Response
-{
-    public required string Code { get; init; }
 }
