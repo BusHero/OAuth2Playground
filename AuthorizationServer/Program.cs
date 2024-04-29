@@ -39,7 +39,8 @@ app.MapGet("/authorize", (
 
     requestsRepository.Add(
         Guid.NewGuid().ToString(),
-        context.Request.QueryString.ToString()[1..]);
+        clientId,
+        redirectUri);
 
     return Results.Ok();
 });
@@ -59,7 +60,7 @@ app.MapPost("/approve", async (
 
         if (input.Approve is null)
         {
-            var foo = new UriBuilder(request)
+            var foo = new UriBuilder(request.RedirectUri)
             {
                 Query = "error=access_denied",
             }.Uri.ToString();

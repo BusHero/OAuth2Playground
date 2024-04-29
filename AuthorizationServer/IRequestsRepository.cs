@@ -1,6 +1,15 @@
-﻿public interface IRequestsRepository
-{
-    void Add(string requestId, string requestQueryString);
+﻿namespace AuthorizationServer;
 
-    string? GetRequest(string requestId);
+public interface IRequestsRepository
+{
+    void Add(
+        string requestId,
+        string clientId,
+        Uri redirectUri);
+
+    RequestDto? GetRequest(string requestId);
 }
+
+public record RequestDto(
+    string ClientId, 
+    Uri RedirectUri);

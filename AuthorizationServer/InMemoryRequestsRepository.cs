@@ -7,16 +7,16 @@ public class InMemoryRequestsRepository : IRequestsRepository
         _requests.Clear();
     }
 
-    private readonly Dictionary<string, string> _requests = new();
+    private readonly Dictionary<string, RequestDto> _requests = new();
 
-    public IReadOnlyDictionary<string, string> Requests => _requests.AsReadOnly();
+    public IReadOnlyDictionary<string, RequestDto> Requests => _requests.AsReadOnly();
 
-    public void Add(string requestId, string requestQueryString)
+    public void Add(string requestId, string clientId, Uri redirectUri)
     {
-        _requests[requestId] = requestQueryString;
+        _requests[requestId] = new RequestDto(clientId, redirectUri);
     }
-
-    public string? GetRequest(string requestId)
+    
+    public RequestDto? GetRequest(string requestId)
     {
         _requests.TryGetValue(requestId, out var query);
         return query;

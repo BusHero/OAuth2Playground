@@ -21,9 +21,10 @@ public sealed class ApproveTests(CustomFactory factory)
     [Theory, AutoData]
     public async Task Approve_RequiredId_Ok(
         string requestId,
-        string request)
+        string clientId,
+        Uri request)
     {
-        _requestsRepository.Add(requestId, request);
+        _requestsRepository.Add(requestId, clientId, request);
 
         var result = await _client
             .CreateApproveEndpoint()
@@ -90,7 +91,7 @@ public sealed class ApproveTests(CustomFactory factory)
     {
         var data = GetApproveContent(requestId);
         data.Remove("reqId");
-        
+
         var result = await _client
             .CreateApproveEndpoint()
             .SendAsync(
@@ -106,9 +107,10 @@ public sealed class ApproveTests(CustomFactory factory)
     [Theory, AutoData]
     public async Task Approve_NoApprove_Ok(
         string requestId,
-        string request)
+        string clientId,
+        Uri redirectUri)
     {
-        _requestsRepository.Add(requestId, request);
+        _requestsRepository.Add(requestId, clientId, redirectUri);
         var data = GetApproveContent(requestId);
         data.Remove("approve");
 
@@ -127,9 +129,10 @@ public sealed class ApproveTests(CustomFactory factory)
     [Theory, AutoData]
     public async Task Approve_NoApprove_RedirectsToSetupUri(
         string requestId,
+        string clientId,
         Uri request)
     {
-        _requestsRepository.Add(requestId, request.ToString());
+        _requestsRepository.Add(requestId, clientId, request);
         var data = GetApproveContent(requestId);
         data.Remove("approve");
 
@@ -145,19 +148,21 @@ public sealed class ApproveTests(CustomFactory factory)
         using (new AssertionScope())
         {
             location.Should().NotBeNull();
-            var query = location.GetComponents(
-                UriComponents.Host | UriComponents.Scheme | UriComponents.Path | UriComponents.Port,
-                UriFormat.Unescaped);
-            query.Should().BeEquivalentTo(request.ToString());
+            location.GetComponents(
+                    UriComponents.Host | UriComponents.Scheme | UriComponents.Path | UriComponents.Port,
+                    UriFormat.Unescaped)
+                .Should()
+                .BeEquivalentTo(request.ToString());
         }
     }
 
     [Theory, AutoData]
     public async Task Approve_NoApprove_Redirects(
         string requestId,
+        string clientId,
         Uri request)
     {
-        _requestsRepository.Add(requestId, request.ToString());
+        _requestsRepository.Add(requestId, clientId, request);
         var data = GetApproveContent(requestId);
         data.Remove("approve");
 
@@ -209,15 +214,15 @@ public static class UriExtensions
     }
 }
 
-public sealed class UriAssertions(Uri? uri) 
+public sealed class UriAssertions(Uri? uri)
     : ReferenceTypeAssertions<Uri?, UriAssertions>(uri)
 {
     private readonly Uri? _uri = uri;
-    
+
     protected override string Identifier => "uri";
 
     public AndConstraint<UriAssertions> HaveHost(
-        string host, 
+        string host,
         string because = "")
     {
         Execute.Assertion
@@ -227,7 +232,7 @@ public sealed class UriAssertions(Uri? uri)
             .Then
             .ForCondition(_uri!.Host == host)
             .FailWith("Expected host to contain {0}{reason}, but found {1}",
-                host, 
+                host,
                 _uri!.Host);
 
         return new AndConstraint<UriAssertions>(this);

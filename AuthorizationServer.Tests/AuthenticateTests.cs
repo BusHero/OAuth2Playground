@@ -47,7 +47,11 @@ public sealed class AuthenticateTests(
             .Requests
             .Values
             .Should()
-            .Contain(query);
+            .ContainEquivalentOf(new
+            {
+                RedirectUri = oauthClient.RedirectUris.First(),
+                ClientId = oauthClient.ClientId,
+            });
     }
 
     [Theory, AutoData]
