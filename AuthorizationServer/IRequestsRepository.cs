@@ -5,7 +5,8 @@ public interface IRequestsRepository
     void Add(string requestId,
         string clientId,
         Uri redirectUri, 
-        string responseType);
+        string responseType,
+        string state);
 
     RequestDto? GetRequest(string requestId);
 }
@@ -13,4 +14,5 @@ public interface IRequestsRepository
 public record RequestDto(
     string ClientId,
     Uri RedirectUri,
-    string responseType);
+    string ResponseType,
+    string State);

@@ -189,6 +189,38 @@ public sealed class ApproveTests(CustomFactory factory)
     }
 
     [Theory, AutoData]
+    public async Task Approve_SendsBackStateDuringRegistration(
+        Client client,
+        string state)
+    {
+        _clientRepository.AddClient(client);
+        var response = await (await _client
+            .CreateAuthorizationEndpoint(client, state)
+            .GetAsync()).GetJsonAsync<Response>();
+
+        var result = await _client
+            .CreateApproveEndpoint()
+            .WithAutoRedirect(false)
+            .SendAsync(
+                HttpMethod.Post,
+                GetApproveContent(response.Code).CreateFormUrlEncodedContent());
+
+        var location = result.ResponseMessage.Headers.Location!;
+        var dict = location
+            .GetComponents(UriComponents.Query, UriFormat.Unescaped)
+            .Split('&')
+            .Select(x => x.Split('='))
+            .ToDictionary(x => x[0], x => x[1]);
+
+        dict
+            .Should()
+            .ContainKey("state")
+            .WhoseValue
+            .Should()
+            .Be(state);
+    }
+
+    [Theory, AutoData]
     public async Task Approve_NoApprove_Redirects(
         Client client)
     {

@@ -14,14 +14,15 @@ internal static class Extensions
             .WithAutoRedirect(false)
             .AppendPathSegment("approve");
 
-    public static IFlurlRequest CreateAuthorizationEndpoint(
-        this IFlurlClient client,
-        Client oauthClient) =>
+    public static IFlurlRequest CreateAuthorizationEndpoint(this IFlurlClient client,
+        Client oauthClient, 
+        string state = "") =>
         client.Request()
             .AllowAnyHttpStatus()
             .WithAutoRedirect(false)
             .AppendPathSegment("authorize")
             .AppendQueryParam("response_type", "code")
             .AppendQueryParam("redirect_uri", oauthClient.RedirectUris[0])
+            .AppendQueryParam("state", state)
             .AppendQueryParam("client_id", oauthClient.ClientId);
 }

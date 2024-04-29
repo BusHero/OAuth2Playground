@@ -30,7 +30,8 @@ app.MapGet("/authorize", (
     [FromServices] IRequestsRepository requestsRepository,
     [FromQuery(Name = "client_id")] string clientId,
     [FromQuery(Name = "redirect_uri")] Uri redirectUri,
-    [FromQuery(Name = "response_type")] string responseType) =>
+    [FromQuery(Name = "response_type")] string responseType,
+    [FromQuery(Name = "state")] string state) =>
 {
     var client = clientRepository.FindClientById(clientId);
     if (client == null || !client.RedirectUris.Contains(redirectUri))
@@ -43,7 +44,8 @@ app.MapGet("/authorize", (
         code,
         clientId,
         redirectUri,
-        responseType);
+        responseType,
+        state);
 
     return Results.Ok(new { Code = code });
 });
@@ -71,7 +73,7 @@ app.MapPost("/approve", async (
             return Results.Redirect(foo);
         }
 
-        if (request.responseType is not "code")
+        if (request.ResponseType is not "code")
         {
             var foo = new UriBuilder(request.RedirectUri)
             {
@@ -83,7 +85,7 @@ app.MapPost("/approve", async (
 
         var uri = new UriBuilder(request.RedirectUri)
         {
-            Query = $"code={Guid.NewGuid()}&state={Guid.NewGuid()}"
+            Query = $"code={Guid.NewGuid()}&state={request.State}"
         }.Uri.ToString();
         return Results.Redirect(uri);
     })

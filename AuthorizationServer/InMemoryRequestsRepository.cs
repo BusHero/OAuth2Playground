@@ -11,11 +11,20 @@ public class InMemoryRequestsRepository : IRequestsRepository
 
     public IReadOnlyDictionary<string, RequestDto> Requests => _requests.AsReadOnly();
 
-    public void Add(string requestId, string clientId, Uri redirectUri, string responseType)
+    public void Add(
+        string requestId,
+        string clientId,
+        Uri redirectUri,
+        string responseType,
+        string state)
     {
-        _requests[requestId] = new RequestDto(clientId, redirectUri, responseType);
+        _requests[requestId] = new RequestDto(
+            clientId,
+            redirectUri,
+            responseType,
+            state);
     }
-    
+
     public RequestDto? GetRequest(string requestId)
     {
         _requests.TryGetValue(requestId, out var query);
