@@ -38,12 +38,13 @@ app.MapGet("/authorize", (
         return Results.BadRequest();
     }
 
+    var code = Guid.NewGuid().ToString();
     requestsRepository.Add(
-        Guid.NewGuid().ToString(),
+        code,
         clientId,
         redirectUri);
 
-    return Results.Ok();
+    return Results.Ok(code);
 });
 
 app.MapPost("/approve", async (
@@ -64,6 +65,16 @@ app.MapPost("/approve", async (
             var foo = new UriBuilder(request.RedirectUri)
             {
                 Query = "error=access_denied",
+            }.Uri.ToString();
+
+            return Results.Redirect(foo);
+        }
+
+        if (input.Approve is not "code")
+        {
+            var foo = new UriBuilder(request.RedirectUri)
+            {
+                Query = "error=unsupported_response_type",
             }.Uri.ToString();
 
             return Results.Redirect(foo);

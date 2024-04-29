@@ -160,11 +160,12 @@ public sealed class ApproveTests(CustomFactory factory)
     public async Task Approve_ResponseTypeIsNotCode_ReturnsError(
         string requestId,
         string clientId,
-        Uri request)
+        Uri request,
+        string responseType)
     {
         _requestsRepository.Add(requestId, clientId, request);
         var data = GetApproveContent(requestId);
-        data.Remove("approve");
+        data["response_type"] = responseType;
 
         var result = await _client
             .CreateApproveEndpoint()
