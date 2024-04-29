@@ -146,4 +146,19 @@ public sealed class AuthenticateTests(
             .Should()
             .Be(400);
     }
+
+    [Theory, AutoData]
+    public async Task Authenticate_NoResponseType_ReturnsBadRequest(Client oauthClient)
+    {
+        _clientRepository.AddClient(oauthClient);
+
+        var result = await _client
+            .CreateAuthorizationEndpoint(oauthClient)
+            .RemoveQueryParam("response_type")
+            .SendAsync(HttpMethod.Get);
+
+        result.StatusCode
+            .Should()
+            .Be(400);
+    }
 }

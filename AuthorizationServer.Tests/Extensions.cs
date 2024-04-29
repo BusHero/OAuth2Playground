@@ -21,6 +21,7 @@ internal static class Extensions
             .AllowAnyHttpStatus()
             .WithAutoRedirect(false)
             .AppendPathSegment("authorize")
+            .AppendQueryParam("response_type", "code")
             .AppendQueryParam("redirect_uri", oauthClient.RedirectUris[0])
             .AppendQueryParam("client_id", oauthClient.ClientId);
 }

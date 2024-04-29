@@ -157,6 +157,36 @@ public sealed class ApproveTests(CustomFactory factory)
     }
 
     [Theory, AutoData]
+    public async Task Approve_ResponseTypeIsNotCode_ReturnsError(
+        string requestId,
+        string clientId,
+        Uri request)
+    {
+        _requestsRepository.Add(requestId, clientId, request);
+        var data = GetApproveContent(requestId);
+        data.Remove("approve");
+
+        var result = await _client
+            .CreateApproveEndpoint()
+            .WithAutoRedirect(false)
+            .SendAsync(
+                HttpMethod.Post,
+                data.CreateFormUrlEncodedContent());
+
+        var location = result.ResponseMessage.Headers.Location!;
+
+        using (new AssertionScope())
+        {
+            location.Should().NotBeNull();
+            var query = location.GetComponents(UriComponents.Query, UriFormat.Unescaped);
+            var foo = query.Split("&");
+            var arguments = foo[0].Split('=');
+            arguments[0].Should().Be("error");
+            arguments[1].Should().Be("unsupported_response_type");
+        }
+    }
+
+    [Theory, AutoData]
     public async Task Approve_NoApprove_Redirects(
         string requestId,
         string clientId,

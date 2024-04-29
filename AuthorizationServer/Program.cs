@@ -29,7 +29,8 @@ app.MapGet("/authorize", (
     [FromServices] IClientRepository clientRepository,
     [FromServices] IRequestsRepository requestsRepository,
     [FromQuery(Name = "client_id")] string clientId,
-    [FromQuery(Name = "redirect_uri")] Uri redirectUri) =>
+    [FromQuery(Name = "redirect_uri")] Uri redirectUri,
+    [FromQuery(Name = "response_type")] string responseType) =>
 {
     var client = clientRepository.FindClientById(clientId);
     if (client == null || !client.RedirectUris.Contains(redirectUri))
