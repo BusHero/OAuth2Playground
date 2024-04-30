@@ -25,9 +25,9 @@ public class InMemoryRequestsRepository : IRequestsRepository
             state);
     }
 
-    public RequestDto? GetRequest(string requestId)
+    public RequestDto? GetAndRemoveRequest(string requestId)
     {
-        _requests.TryGetValue(requestId, out var query);
+        _requests.Remove(requestId, out var query);
         return query;
     }
 }

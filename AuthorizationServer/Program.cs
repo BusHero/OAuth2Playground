@@ -50,7 +50,7 @@ app.MapPost("/approve", (
         [AsParameters] Request input,
         [FromServices] IRequestsRepository requestRepository) =>
     {
-        var request = requestRepository.GetRequest(input.RequestId);
+        var request = requestRepository.GetAndRemoveRequest(input.RequestId);
         if (request is null)
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
@@ -83,6 +83,9 @@ app.MapPost("/approve", (
         {
             Query = $"code={Guid.NewGuid()}&state={request.State}"
         }.Uri.ToString();
+        
+        
+        
         return Results.Redirect(uri);
     })
     .DisableAntiforgery()

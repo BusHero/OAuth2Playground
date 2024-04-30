@@ -8,7 +8,7 @@ public interface IRequestsRepository
         string responseType,
         string? state);
 
-    RequestDto? GetRequest(string requestId);
+    RequestDto? GetAndRemoveRequest(string requestId);
 }
 
 public record RequestDto(
