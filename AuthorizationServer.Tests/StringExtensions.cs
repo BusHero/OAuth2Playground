@@ -11,7 +11,7 @@ public static class StringExtensions
 
     public static Uri ToUri(this string uri) => new(uri);
 
-    public static string ToBase64String(this string input) =>
+    private static string ToBase64String(this string input) =>
         Encoding
             .UTF8
             .GetBytes(input)

@@ -18,13 +18,14 @@ public sealed class ApproveTests(CustomFactory factory)
     {
         _clientRepository.AddClient(client);
 
-        var response = await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
+        var response = await (await _client
+                .CreateAuthorizationEndpoint(client)
+                .GetAsync())
+            .GetJsonAsync<Response>();
 
         var result = await _client
             .CreateApproveEndpoint()
-            .SendAsync(
-                HttpMethod.Post,
-                GetApproveContent(response.Code).CreateFormUrlEncodedContent());
+            .PostUrlEncodedAsync(GetApproveContent(response.Code));
 
         result
             .StatusCode
@@ -38,15 +39,20 @@ public sealed class ApproveTests(CustomFactory factory)
     {
         _clientRepository.AddClient(client);
 
-        var response = await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
+        var response = await (await _client
+                .CreateAuthorizationEndpoint(client)
+                .GetAsync())
+            .GetJsonAsync<Response>();
 
         var result = await _client
             .CreateApproveEndpoint()
-            .SendAsync(
-                HttpMethod.Post,
-                GetApproveContent(response.Code).CreateFormUrlEncodedContent());
+            .PostUrlEncodedAsync(GetApproveContent(response.Code));
 
-        var query = result.ResponseMessage.Headers.Location!.GetComponents(UriComponents.Query, UriFormat.Unescaped);
+        var query = result
+            .ResponseMessage
+            .Headers
+            .Location!
+            .GetComponents(UriComponents.Query, UriFormat.Unescaped);
 
         var parameters = query
             .Split('&')
@@ -67,12 +73,13 @@ public sealed class ApproveTests(CustomFactory factory)
     {
         _clientRepository.AddClient(client);
 
-        await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
+        await _client
+            .CreateAuthorizationEndpoint(client)
+            .GetAsync();
+
         var result = await _client
             .CreateApproveEndpoint()
-            .SendAsync(
-                HttpMethod.Post,
-                GetApproveContent(requestId).CreateFormUrlEncodedContent());
+            .PostUrlEncodedAsync(GetApproveContent(requestId));
 
         result
             .StatusCode
@@ -86,13 +93,15 @@ public sealed class ApproveTests(CustomFactory factory)
         string requestId)
     {
         _clientRepository.AddClient(client);
-        await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
+
+        await _client
+            .CreateAuthorizationEndpoint(client)
+            .GetAsync();
 
         var result = await _client
             .CreateApproveEndpoint()
-            .SendAsync(
-                HttpMethod.Post,
-                GetApproveContent(requestId).CreateFormUrlEncodedContent());
+            .PostUrlEncodedAsync(
+                GetApproveContent(requestId));
 
         var result2 = await result.GetJsonAsync<Error>();
 
@@ -104,16 +113,17 @@ public sealed class ApproveTests(CustomFactory factory)
         Client client)
     {
         _clientRepository.AddClient(client);
-        var response = await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
+        var response = await (await _client
+                .CreateAuthorizationEndpoint(client)
+                .GetAsync())
+            .GetJsonAsync<Response>();
 
         var data = GetApproveContent(response.Code);
         data.Remove("reqId");
 
         var result = await _client
             .CreateApproveEndpoint()
-            .SendAsync(
-                HttpMethod.Post,
-                data.CreateFormUrlEncodedContent());
+            .PostUrlEncodedAsync(data);
 
         result
             .StatusCode
@@ -126,18 +136,23 @@ public sealed class ApproveTests(CustomFactory factory)
         Client client)
     {
         _clientRepository.AddClient(client);
-        var response = await (await _client.CreateAuthorizationEndpoint(client).GetAsync()).GetJsonAsync<Response>();
+        var response = await (await _client
+                .CreateAuthorizationEndpoint(client)
+                .GetAsync())
+            .GetJsonAsync<Response>();
+
         var data = GetApproveContent(response.Code);
         data.Remove("approve");
 
         var result = await _client
             .CreateApproveEndpoint()
             .WithAutoRedirect(false)
-            .SendAsync(
-                HttpMethod.Post,
-                data.CreateFormUrlEncodedContent());
+            .PostUrlEncodedAsync(data);
 
-        var location = result.ResponseMessage.Headers.Location!;
+        var location = result
+            .ResponseMessage
+            .Headers
+            .Location!;
 
         using (new AssertionScope())
         {
@@ -156,20 +171,22 @@ public sealed class ApproveTests(CustomFactory factory)
         string responseType)
     {
         _clientRepository.AddClient(client);
+        
         var response = await (await _client
-            .CreateAuthorizationEndpoint(client)
-            .AppendQueryParam("response_type", responseType)
-            .GetAsync()).GetJsonAsync<Response>();
-        var data = GetApproveContent(response.Code);
+                .CreateAuthorizationEndpoint(client)
+                .AppendQueryParam("response_type", responseType)
+                .GetAsync())
+            .GetJsonAsync<Response>();
 
         var result = await _client
             .CreateApproveEndpoint()
             .WithAutoRedirect(false)
-            .SendAsync(
-                HttpMethod.Post,
-                data.CreateFormUrlEncodedContent());
+            .PostUrlEncodedAsync(GetApproveContent(response.Code));
 
-        var location = result.ResponseMessage.Headers.Location!;
+        var location = result
+            .ResponseMessage
+            .Headers
+            .Location!;
 
         using (new AssertionScope())
         {
@@ -189,17 +206,20 @@ public sealed class ApproveTests(CustomFactory factory)
     {
         _clientRepository.AddClient(client);
         var response = await (await _client
-            .CreateAuthorizationEndpoint(client, state)
-            .GetAsync()).GetJsonAsync<Response>();
+                .CreateAuthorizationEndpoint(client, state)
+                .GetAsync())
+            .GetJsonAsync<Response>();
 
         var result = await _client
             .CreateApproveEndpoint()
             .WithAutoRedirect(false)
-            .SendAsync(
-                HttpMethod.Post,
-                GetApproveContent(response.Code).CreateFormUrlEncodedContent());
+            .PostUrlEncodedAsync(GetApproveContent(response.Code));
 
-        var location = result.ResponseMessage.Headers.Location!;
+        var location = result
+            .ResponseMessage
+            .Headers
+            .Location!;
+
         var dict = location
             .GetComponents(UriComponents.Query, UriFormat.Unescaped)
             .Split('&')
@@ -220,8 +240,9 @@ public sealed class ApproveTests(CustomFactory factory)
     {
         _clientRepository.AddClient(client);
         var response = await (await _client
-            .CreateAuthorizationEndpoint(client)
-            .GetAsync()).GetJsonAsync<Response>();
+                .CreateAuthorizationEndpoint(client)
+                .GetAsync())
+            .GetJsonAsync<Response>();
 
         var data = GetApproveContent(response.Code);
         data.Remove("approve");
@@ -229,11 +250,12 @@ public sealed class ApproveTests(CustomFactory factory)
         var result = await _client
             .CreateApproveEndpoint()
             .WithAutoRedirect(false)
-            .SendAsync(
-                HttpMethod.Post,
-                data.CreateFormUrlEncodedContent());
+            .PostUrlEncodedAsync(data);
 
-        var location = result.ResponseMessage.Headers.Location!;
+        var location = result
+            .ResponseMessage
+            .Headers
+            .Location!;
 
         using (new AssertionScope())
         {
@@ -255,7 +277,7 @@ public sealed class ApproveTests(CustomFactory factory)
             .AppendPathSegment("approve")
             .WithAutoRedirect(false)
             .AllowAnyHttpStatus()
-            .SendAsync(HttpMethod.Post);
+            .PostAsync();
 
         result
             .StatusCode
