@@ -48,22 +48,13 @@ public sealed class ApproveTests(CustomFactory factory)
             .CreateApproveEndpoint()
             .PostUrlEncodedAsync(GetApproveContent(response.Code));
 
-        var query = result
+        result
             .ResponseMessage
             .Headers
             .Location!
-            .GetComponents(UriComponents.Query, UriFormat.Unescaped);
-
-        var parameters = query
-            .Split('&')
-            .Select(x => x.Split('='))
-            .ToDictionary(x => x[0], x => x[1]);
-
-        using (new AssertionScope())
-        {
-            parameters.Should().ContainKey("code");
-            parameters.Should().ContainKey("state");
-        }
+            .GetQueryParameters()
+            .Should()
+            .ContainKeys("code", "state");
     }
 
     [Theory, AutoData]
@@ -100,12 +91,14 @@ public sealed class ApproveTests(CustomFactory factory)
 
         var result = await _client
             .CreateApproveEndpoint()
-            .PostUrlEncodedAsync(
-                GetApproveContent(requestId));
+            .PostUrlEncodedAsync(GetApproveContent(requestId));
 
         var result2 = await result.GetJsonAsync<Error>();
 
-        result2.Errors.Should().ContainKey("reqId");
+        result2
+            .Errors
+            .Should()
+            .ContainKey("reqId");
     }
 
     [Theory, AutoData]
@@ -149,20 +142,15 @@ public sealed class ApproveTests(CustomFactory factory)
             .WithAutoRedirect(false)
             .PostUrlEncodedAsync(data);
 
-        var location = result
+        result
             .ResponseMessage
             .Headers
-            .Location!;
-
-        using (new AssertionScope())
-        {
-            location.Should().NotBeNull();
-            location.GetComponents(
-                    UriComponents.Host | UriComponents.Scheme | UriComponents.Path | UriComponents.Port,
-                    UriFormat.Unescaped)
-                .Should()
-                .BeEquivalentTo(client.RedirectUris[0].ToString());
-        }
+            .Location!
+            .GetComponents(
+                UriComponents.Host | UriComponents.Scheme | UriComponents.Path | UriComponents.Port,
+                UriFormat.Unescaped)
+            .Should()
+            .BeEquivalentTo(client.RedirectUris[0].ToString());
     }
 
     [Theory, AutoData]
@@ -171,7 +159,7 @@ public sealed class ApproveTests(CustomFactory factory)
         string responseType)
     {
         _clientRepository.AddClient(client);
-        
+
         var response = await (await _client
                 .CreateAuthorizationEndpoint(client)
                 .AppendQueryParam("response_type", responseType)
@@ -183,20 +171,16 @@ public sealed class ApproveTests(CustomFactory factory)
             .WithAutoRedirect(false)
             .PostUrlEncodedAsync(GetApproveContent(response.Code));
 
-        var location = result
+        result
             .ResponseMessage
             .Headers
-            .Location!;
-
-        using (new AssertionScope())
-        {
-            location.Should().NotBeNull();
-            var query = location.GetComponents(UriComponents.Query, UriFormat.Unescaped);
-            var foo = query.Split("&");
-            var arguments = foo[0].Split('=');
-            arguments[0].Should().Be("error");
-            arguments[1].Should().Be("unsupported_response_type");
-        }
+            .Location!
+            .GetQueryParameters()
+            .Should()
+            .ContainKey("error")
+            .WhoseValue
+            .Should()
+            .Be("unsupported_response_type");
     }
 
     [Theory, AutoData]
@@ -215,18 +199,11 @@ public sealed class ApproveTests(CustomFactory factory)
             .WithAutoRedirect(false)
             .PostUrlEncodedAsync(GetApproveContent(response.Code));
 
-        var location = result
+        result
             .ResponseMessage
             .Headers
-            .Location!;
-
-        var dict = location
-            .GetComponents(UriComponents.Query, UriFormat.Unescaped)
-            .Split('&')
-            .Select(x => x.Split('='))
-            .ToDictionary(x => x[0], x => x[1]);
-
-        dict
+            .Location!
+            .GetQueryParameters()
             .Should()
             .ContainKey("state")
             .WhoseValue
@@ -252,21 +229,16 @@ public sealed class ApproveTests(CustomFactory factory)
             .WithAutoRedirect(false)
             .PostUrlEncodedAsync(data);
 
-        var location = result
+        result
             .ResponseMessage
             .Headers
-            .Location!;
-
-        using (new AssertionScope())
-        {
-            result.StatusCode.Should().Be(302);
-            location.Should().NotBeNull();
-            var query = location.GetComponents(UriComponents.Query, UriFormat.Unescaped);
-            var foo = query.Split("&");
-            var arguments = foo[0].Split('=');
-            arguments[0].Should().Be("error");
-            arguments[1].Should().Be("access_denied");
-        }
+            .Location!
+            .GetQueryParameters()
+            .Should()
+            .ContainKey("error")
+            .WhoseValue
+            .Should()
+            .Be("access_denied");
     }
 
     [Fact]
