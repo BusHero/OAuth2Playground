@@ -129,5 +129,4 @@ public sealed class AuthenticateTests(
             .Should()
             .Be(200);
     }
-    
 }

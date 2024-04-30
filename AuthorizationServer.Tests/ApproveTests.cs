@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using AutoFixture.Xunit2;
+﻿using AutoFixture.Xunit2;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using Flurl.Http;

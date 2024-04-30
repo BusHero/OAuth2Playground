@@ -1,13 +1,11 @@
 ﻿using System.Net;
 using FluentAssertions;
-using WireMock.RequestBuilders;
-using WireMock.ResponseBuilders;
 using WireMock.Server;
 using WireMock.FluentAssertions;
 
 namespace AuthorizationServer.Tests;
 
-public class HttpMockTests
+public sealed class HttpMockTests
 {
     [Fact]
     public async Task FullyConfigured()

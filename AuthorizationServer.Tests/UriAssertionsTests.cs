@@ -1,10 +1,9 @@
-﻿using System.Drawing;
-using AutoFixture.Xunit2;
+﻿using AutoFixture.Xunit2;
 using FluentAssertions;
 
 namespace AuthorizationServer.Tests;
 
-public class UriAssertionsTests
+public sealed class UriAssertionsTests
 {
     [Theory, AutoData]
     public void NotBeNull(Uri uri)
