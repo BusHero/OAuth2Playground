@@ -1,5 +1,3 @@
-using AutoFixture.Xunit2;
-using FluentAssertions;
 using Flurl.Http;
 
 namespace AuthorizationServer.Tests;

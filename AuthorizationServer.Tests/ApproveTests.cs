@@ -1,6 +1,4 @@
-﻿using AutoFixture.Xunit2;
-using FluentAssertions;
-using FluentAssertions.Execution;
+﻿using FluentAssertions.Execution;
 using Flurl.Http;
 
 namespace AuthorizationServer.Tests;
@@ -13,9 +11,6 @@ public sealed class ApproveTests(CustomFactory factory)
 
     private readonly InMemoryClientRepository _clientRepository
         = factory.ClientRepository;
-
-    private readonly InMemoryRequestsRepository _requestsRepository
-        = factory.RequestsRepository;
 
     [Theory, AutoData]
     public async Task Approve_RequiredId_Redirect(

@@ -1,7 +1,4 @@
-﻿using AutoFixture.Xunit2;
-using FluentAssertions;
-
-namespace AuthorizationServer.Tests;
+﻿namespace AuthorizationServer.Tests;
 
 public sealed class UriAssertionsTests
 {
