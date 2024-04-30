@@ -6,7 +6,7 @@ public interface IRequestsRepository
         string clientId,
         Uri redirectUri, 
         string responseType,
-        string state);
+        string? state);
 
     RequestDto? GetRequest(string requestId);
 }

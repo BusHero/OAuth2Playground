@@ -25,7 +25,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapGet("/authorize", (
-    HttpContext context,
     [FromServices] IClientRepository clientRepository,
     [FromServices] IRequestsRepository requestsRepository,
     [AsParameters] AuthorizeRequest request) =>
@@ -47,7 +46,7 @@ app.MapGet("/authorize", (
     return Results.Ok(new { Code = code });
 });
 
-app.MapPost("/approve", async (
+app.MapPost("/approve", (
         [AsParameters] Request input,
         [FromServices] IRequestsRepository requestRepository) =>
     {
@@ -104,4 +103,4 @@ internal sealed record AuthorizeRequest(
     [FromQuery(Name = "client_id")] string ClientId,
     [FromQuery(Name = "redirect_uri")] Uri RedirectUri,
     [FromQuery(Name = "response_type")] string ResponseType,
-    [FromQuery(Name = "state")] string State);
+    [FromQuery(Name = "state")] string? State);

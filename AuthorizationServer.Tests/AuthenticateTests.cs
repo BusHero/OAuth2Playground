@@ -1,6 +1,5 @@
 using AutoFixture.Xunit2;
 using FluentAssertions;
-using FluentAssertions.Execution;
 using Flurl.Http;
 
 namespace AuthorizationServer.Tests;
@@ -22,7 +21,7 @@ public sealed class AuthenticateTests(
 
         var result = await _client
             .CreateAuthorizationEndpoint(oauthClient)
-            .SendAsync(HttpMethod.Get);
+            .GetAsync();
 
         result.StatusCode.Should().Be(200);
     }
@@ -35,7 +34,7 @@ public sealed class AuthenticateTests(
 
         var result = await _client
             .CreateAuthorizationEndpoint(oauthClient)
-            .SendAsync(HttpMethod.Get);
+            .GetAsync();
 
         var code = await result.GetStringAsync();
         code.Should().NotBeNullOrEmpty();
@@ -49,7 +48,7 @@ public sealed class AuthenticateTests(
         var result = await _client
             .CreateAuthorizationEndpoint(oauthClient)
             .RemoveQueryParam("client_id")
-            .SendAsync(HttpMethod.Get);
+            .GetAsync();
 
         result.StatusCode
             .Should()
@@ -64,7 +63,7 @@ public sealed class AuthenticateTests(
         var result = await _client
             .CreateAuthorizationEndpoint(oauthClient)
             .SetQueryParam("client_id", "another_client")
-            .SendAsync(HttpMethod.Get);
+            .GetAsync();
 
         result.StatusCode
             .Should()
@@ -79,7 +78,7 @@ public sealed class AuthenticateTests(
         var result = await _client
             .CreateAuthorizationEndpoint(oauthClient)
             .RemoveQueryParam("redirect_uri")
-            .SendAsync(HttpMethod.Get);
+            .GetAsync();
 
         result.StatusCode
             .Should()
@@ -94,7 +93,7 @@ public sealed class AuthenticateTests(
         var result = await _client
             .CreateAuthorizationEndpoint(oauthClient)
             .SetQueryParam("redirect_uri", "http://example.com")
-            .SendAsync(HttpMethod.Get);
+            .GetAsync();
 
         result.StatusCode
             .Should()
@@ -109,13 +108,12 @@ public sealed class AuthenticateTests(
         var result = await _client
             .CreateAuthorizationEndpoint(oauthClient)
             .RemoveQueryParam("response_type")
-            .SendAsync(HttpMethod.Get);
+            .GetAsync();
 
         result.StatusCode
             .Should()
             .Be(400);
     }
-    
 
     [Theory, AutoData]
     public async Task Authenticate_NoState_Ok(Client oauthClient)
@@ -125,11 +123,11 @@ public sealed class AuthenticateTests(
         var result = await _client
             .CreateAuthorizationEndpoint(oauthClient)
             .RemoveQueryParam("state")
-            .SendAsync(HttpMethod.Get);
+            .GetAsync();
 
         result.StatusCode
             .Should()
-            .Be(400);
+            .Be(200);
     }
     
 }
