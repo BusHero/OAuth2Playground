@@ -4,8 +4,7 @@ using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services
-    .AddSingleton<IClientRepository, InMemoryClientRepository>();
+builder.Services.AddSingleton<IClientRepository, InMemoryClientRepository>();
 builder.Services.AddTransient<IValidator<Request>, RequestValidator>();
 
 builder.Services
@@ -15,12 +14,6 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
 app.UseHttpsRedirection();
 
@@ -38,7 +31,6 @@ app.MapGet("/authorize", (
     var code = Guid.NewGuid().ToString();
     requestsRepository.Add(
         code,
-        request.ClientId,
         request.RedirectUri,
         request.ResponseType,
         request.State);
@@ -84,8 +76,6 @@ app.MapPost("/approve", (
             Query = $"code={Guid.NewGuid()}&state={request.State}"
         }.Uri.ToString();
         
-        
-        
         return Results.Redirect(uri);
     })
     .DisableAntiforgery()
@@ -94,16 +84,3 @@ app.MapPost("/approve", (
 app.Run();
 
 public abstract partial class Program;
-
-internal sealed class Request
-{
-    [FromForm(Name = "reqId")] public required string RequestId { get; init; }
-
-    [FromForm(Name = "approve")] public string? Approve { get; init; }
-}
-
-internal sealed record AuthorizeRequest(
-    [FromQuery(Name = "client_id")] string ClientId,
-    [FromQuery(Name = "redirect_uri")] Uri RedirectUri,
-    [FromQuery(Name = "response_type")] string ResponseType,
-    [FromQuery(Name = "state")] string? State);

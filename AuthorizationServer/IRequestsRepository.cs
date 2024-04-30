@@ -3,7 +3,6 @@
 public interface IRequestsRepository
 {
     void Add(string requestId,
-        string clientId,
         Uri redirectUri, 
         string responseType,
         string? state);
@@ -12,7 +11,6 @@ public interface IRequestsRepository
 }
 
 public record RequestDto(
-    string ClientId,
     Uri RedirectUri,
     string ResponseType,
-    string State);
+    string? State);
