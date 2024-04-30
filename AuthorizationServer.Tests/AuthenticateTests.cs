@@ -115,4 +115,21 @@ public sealed class AuthenticateTests(
             .Should()
             .Be(400);
     }
+    
+
+    [Theory, AutoData]
+    public async Task Authenticate_NoState_Ok(Client oauthClient)
+    {
+        _clientRepository.AddClient(oauthClient);
+
+        var result = await _client
+            .CreateAuthorizationEndpoint(oauthClient)
+            .RemoveQueryParam("state")
+            .SendAsync(HttpMethod.Get);
+
+        result.StatusCode
+            .Should()
+            .Be(400);
+    }
+    
 }

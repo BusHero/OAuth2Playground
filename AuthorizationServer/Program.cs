@@ -28,13 +28,10 @@ app.MapGet("/authorize", (
     HttpContext context,
     [FromServices] IClientRepository clientRepository,
     [FromServices] IRequestsRepository requestsRepository,
-    [FromQuery(Name = "client_id")] string clientId,
-    [FromQuery(Name = "redirect_uri")] Uri redirectUri,
-    [FromQuery(Name = "response_type")] string responseType,
-    [FromQuery(Name = "state")] string state) =>
+    [AsParameters] AuthorizeRequest request) =>
 {
-    var client = clientRepository.FindClientById(clientId);
-    if (client == null || !client.RedirectUris.Contains(redirectUri))
+    var client = clientRepository.FindClientById(request.ClientId);
+    if (client == null || !client.RedirectUris.Contains(request.RedirectUri))
     {
         return Results.BadRequest();
     }
@@ -42,10 +39,10 @@ app.MapGet("/authorize", (
     var code = Guid.NewGuid().ToString();
     requestsRepository.Add(
         code,
-        clientId,
-        redirectUri,
-        responseType,
-        state);
+        request.ClientId,
+        request.RedirectUri,
+        request.ResponseType,
+        request.State);
 
     return Results.Ok(new { Code = code });
 });
@@ -102,3 +99,9 @@ internal sealed class Request
 
     [FromForm(Name = "approve")] public string? Approve { get; init; }
 }
+
+internal sealed record AuthorizeRequest(
+    [FromQuery(Name = "client_id")] string ClientId,
+    [FromQuery(Name = "redirect_uri")] Uri RedirectUri,
+    [FromQuery(Name = "response_type")] string ResponseType,
+    [FromQuery(Name = "state")] string State);
