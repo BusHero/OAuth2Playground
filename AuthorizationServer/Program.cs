@@ -1,6 +1,12 @@
+using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using AuthorizationServer;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -75,12 +81,91 @@ app.MapPost("/approve", (
         {
             Query = $"code={Guid.NewGuid()}&state={request.State}"
         }.Uri.ToString();
-        
+
         return Results.Redirect(uri);
     })
     .DisableAntiforgery()
     .AddEndpointFilter<ValidationFilter<Request>>();
 
+app.MapPost(
+    "/token", async (HttpContext context) =>
+    {
+        var client = default(string);
+        var secret = default(string);
+        var auth = context.Request.Headers.Authorization;
+        if (auth.Count != 0)
+        {
+            var foo = AuthenticationHeaderValue.Parse(auth!);
+            var stuff = foo.Parameter!.FromBase64String();
+            var parameters = stuff.Split(':');
+
+            client = parameters[0];
+            secret = parameters[1];
+        }
+
+        var clientFromBody = default(string);
+        var secretFromBody = default(string);
+        if (context.Request.HasFormContentType)
+        {
+            var formData = await context.Request.ReadFormAsync();
+            clientFromBody = formData["client"].ToString();
+            secretFromBody = formData["secret"].ToString();
+        }
+
+        if (client is not null && clientFromBody is not null)
+        {
+            return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
+        }
+
+        if (client is not null)
+        {
+            return Results.Ok(new
+            {
+                Client = client,
+                Secret = secret,
+            });
+        }
+
+        if (clientFromBody is not null)
+        {
+            return Results.Ok(new
+            {
+                Client = clientFromBody,
+                Secret = secretFromBody,
+            });
+        }
+
+        return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
+    });
+
 app.Run();
 
 public abstract partial class Program;
+
+public static class StringExtensions
+{
+    private static string ToBase64String(this byte[] bytes)
+        => Convert.ToBase64String(bytes);
+
+    public static Uri ToUri(this string uri) => new(uri);
+
+    public static string ToBase64String(this string input) =>
+        Encoding
+            .UTF8
+            .GetBytes(input)
+            .ToBase64String();
+
+    public static string FromBase64String(this string input)
+    {
+        var bytes = Convert.FromBase64String(input);
+        return Encoding.UTF8.GetString(bytes);
+    }
+
+    private static byte[] GetBytes(this string input, Encoding encoding)
+        => encoding.GetBytes(input);
+
+    private static string ToBase64String(this object @object) =>
+        JsonSerializer
+            .Serialize(@object)
+            .ToBase64String();
+}
