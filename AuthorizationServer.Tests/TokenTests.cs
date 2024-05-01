@@ -33,13 +33,32 @@ public sealed class TokenTests(CustomFactory factory)
     public async Task BasicAuth_ExistingClient_Returns200(Client client)
     {
         _clientRepository.AddClient(client);
+
         var result = await _client
             .Request()
+            .AllowAnyHttpStatus()
             .AppendPathSegment("token")
             .WithBasicAuth(client.ClientId, client.ClientSecret)
             .PostAsync();
 
         result.StatusCode.Should().Be(200);
+    }
+
+    [Theory, AutoData]
+    public async Task BasicAuth_WrongSecret_Returns401(
+        Client client,
+        string wrongSecret)
+    {
+        _clientRepository.AddClient(client);
+
+        var result = await _client
+            .Request()
+            .AllowAnyHttpStatus()
+            .AppendPathSegment("token")
+            .WithBasicAuth(client.ClientId, wrongSecret)
+            .PostAsync();
+
+        result.StatusCode.Should().Be(401);
     }
 
     [Fact]

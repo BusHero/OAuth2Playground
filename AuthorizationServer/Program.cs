@@ -130,6 +130,12 @@ app.MapPost(
             return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
         }
 
+        var actualSecret = clientSecret ?? secretFromBody;
+        if (client.ClientSecret != actualSecret)
+        {
+            return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
+        }
+
         return Results.Ok(new { Client = clientId, Secret = clientSecret });
     });
 
