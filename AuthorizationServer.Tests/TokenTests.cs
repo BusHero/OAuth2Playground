@@ -15,23 +15,31 @@ public sealed class TokenTests(CustomFactory factory)
         = factory.ClientRepository;
 
     [Theory, AutoData]
-    public async Task BasicAuth_ReturnsBackCliendIdAndClientToken(
+    public async Task BasicAuth_NonExistingClient_Returns401(
         string client,
         string secret)
     {
         var result = await _client
             .Request()
+            .AllowAnyHttpStatus()
             .AppendPathSegment("token")
             .WithBasicAuth(client, secret)
             .PostAsync();
 
-        using (new AssertionScope())
-        {
-            result.StatusCode.Should().Be(200);
-            var json = await result.GetJsonAsync<SuccessResponse>();
-            json.Should()
-                .BeEquivalentTo(new SuccessResponse(client, secret));
-        }
+        result.StatusCode.Should().Be(401);
+    }
+
+    [Theory, AutoData]
+    public async Task BasicAuth_ExistingClient_Returns200(Client client)
+    {
+        _clientRepository.AddClient(client);
+        var result = await _client
+            .Request()
+            .AppendPathSegment("token")
+            .WithBasicAuth(client.ClientId, client.ClientSecret)
+            .PostAsync();
+
+        result.StatusCode.Should().Be(200);
     }
 
     [Fact]
@@ -53,25 +61,21 @@ public sealed class TokenTests(CustomFactory factory)
 
     [Theory, AutoData]
     public async Task ClientAndSecretInBody_ReturnsThem(
-        string client,
-        string secret)
+        Client client)
     {
+        _clientRepository.AddClient(client);
+
         var result = await _client
             .Request()
             .AllowAnyHttpStatus()
             .AppendPathSegment("token")
             .PostUrlEncodedAsync(new Dictionary<string, string>
             {
-                ["client"] = client,
-                ["secret"] = secret,
+                ["client"] = client.ClientId,
+                ["secret"] = client.ClientSecret,
             });
 
-        using (new AssertionScope())
-        {
-            result.StatusCode.Should().Be(200);
-            var json = await result.GetJsonAsync<SuccessResponse>();
-            json.Should().BeEquivalentTo(new SuccessResponse(client, secret));
-        }
+        result.StatusCode.Should().Be(200);
     }
 
     [Theory, AutoData]

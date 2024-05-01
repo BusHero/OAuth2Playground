@@ -88,10 +88,12 @@ app.MapPost("/approve", (
     .AddEndpointFilter<ValidationFilter<Request>>();
 
 app.MapPost(
-    "/token", async (HttpContext context) =>
+    "/token", async (
+        HttpContext context,
+        [FromServices] IClientRepository clientRepository) =>
     {
-        var client = default(string);
-        var secret = default(string);
+        var clientId = default(string);
+        var clientSecret = default(string);
         var auth = context.Request.Headers.Authorization;
         if (auth.Count != 0)
         {
@@ -99,8 +101,8 @@ app.MapPost(
             var stuff = foo.Parameter!.FromBase64String();
             var parameters = stuff.Split(':');
 
-            client = parameters[0];
-            secret = parameters[1];
+            clientId = parameters[0];
+            clientSecret = parameters[1];
         }
 
         var clientFromBody = default(string);
@@ -112,30 +114,23 @@ app.MapPost(
             secretFromBody = formData["secret"].ToString();
         }
 
-        if (client is not null && clientFromBody is not null)
+        if (clientId is not null && clientFromBody is not null)
         {
             return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
         }
 
-        if (client is not null)
+        if (clientId is null && clientFromBody is null)
         {
-            return Results.Ok(new
-            {
-                Client = client,
-                Secret = secret,
-            });
+            return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
         }
 
-        if (clientFromBody is not null)
+        var client = clientRepository.FindClientById(clientId ?? clientFromBody!);
+        if (client is null)
         {
-            return Results.Ok(new
-            {
-                Client = clientFromBody,
-                Secret = secretFromBody,
-            });
+            return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
         }
 
-        return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
+        return Results.Ok(new { Client = clientId, Secret = clientSecret });
     });
 
 app.Run();
