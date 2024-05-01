@@ -19,17 +19,19 @@ public sealed class TokenTests(CustomFactory factory)
         string client,
         string secret)
     {
-        var result = await (await _client
+        var result = await _client
             .Request()
             .AppendPathSegment("token")
             .WithBasicAuth(client, secret)
-            .PostAsync()).GetJsonAsync<SuccessResponse>();
+            .PostAsync();
 
-        result.Should().BeEquivalentTo(new
+        using (new AssertionScope())
         {
-            Client = client,
-            Secret = secret
-        });
+            result.StatusCode.Should().Be(200);
+            var json = await result.GetJsonAsync<SuccessResponse>();
+            json.Should()
+                .BeEquivalentTo(new SuccessResponse(client, secret));
+        }
     }
 
     [Fact]
@@ -41,7 +43,12 @@ public sealed class TokenTests(CustomFactory factory)
             .AppendPathSegment("token")
             .PostAsync();
 
-        result.StatusCode.Should().Be(401);
+        using (new AssertionScope())
+        {
+            result.StatusCode.Should().Be(401);
+            var error = await result.GetJsonAsync<ErrorResponse>();
+            error.Error.Should().Be("invalid_client");
+        }
     }
 
     [Theory, AutoData]
@@ -49,7 +56,7 @@ public sealed class TokenTests(CustomFactory factory)
         string client,
         string secret)
     {
-        var result = await (await _client
+        var result = await _client
             .Request()
             .AllowAnyHttpStatus()
             .AppendPathSegment("token")
@@ -57,13 +64,14 @@ public sealed class TokenTests(CustomFactory factory)
             {
                 ["client"] = client,
                 ["secret"] = secret,
-            })).GetJsonAsync<SuccessResponse>();
+            });
 
-        result.Should().BeEquivalentTo(new
+        using (new AssertionScope())
         {
-            Client = client,
-            Secret = secret
-        });
+            result.StatusCode.Should().Be(200);
+            var json = await result.GetJsonAsync<SuccessResponse>();
+            json.Should().BeEquivalentTo(new SuccessResponse(client, secret));
+        }
     }
 
     [Theory, AutoData]
@@ -88,16 +96,6 @@ public sealed class TokenTests(CustomFactory factory)
             var error = await result.GetJsonAsync<ErrorResponse>();
             error.Error.Should().Be("invalid_client");
         }
-    }
-
-    private static Dictionary<string, string> GetApproveContent(
-        string requestId)
-    {
-        return new Dictionary<string, string>
-        {
-            ["reqId"] = requestId,
-            ["approve"] = "approve",
-        };
     }
 
     private sealed record ErrorResponse(string Error);
