@@ -78,7 +78,7 @@ app.MapPost("/approve", (
 
         var code = Guid.NewGuid().ToString();
         codesRepository.Add(
-            code: code, 
+            code: code,
             clientId: request.ClientId);
 
         var uri = new UriBuilder(request.RedirectUri)
@@ -164,7 +164,11 @@ app.MapPost(
                 return Results.BadRequest();
             }
 
-            return Results.Ok(new { Client = clientId, Secret = clientSecret });
+            return Results.Ok(new
+            {
+                access_token = clientId,
+                token_type = "Bearer",
+            });
         })
     .DisableAntiforgery();
 

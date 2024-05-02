@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using FluentAssertions.Execution;
 using Flurl.Http;
 
 namespace AuthorizationServer.Tests;
@@ -33,6 +34,40 @@ public sealed class TokenTests(CustomFactory factory)
             });
 
         result.StatusCode.Should().Be(200);
+    }
+
+    [Theory, AutoData]
+    public async Task HappyPath_ReturnsToken(
+        Client client)
+    {
+        _clientRepository.AddClient(client);
+
+        var code = await GetAuthorizationCode(client);
+
+        var result = await _client
+            .Request()
+            .AllowAnyHttpStatus()
+            .AppendPathSegment("token")
+            .WithBasicAuth(client.ClientId, client.ClientSecret)
+            .PostUrlEncodedAsync(new Dictionary<string, string>
+            {
+                ["grant_type"] = "authorization_code",
+                ["code"] = code,
+            });
+
+        var json = await result.GetJsonAsync<Dictionary<string, string>>();
+
+        using (new AssertionScope())
+        {
+            json.Should()
+                .ContainKey("token_type")
+                .WhoseValue
+                .Should()
+                .Be("Bearer");
+            
+            json.Should()
+                .ContainKey("access_token");
+        }
     }
 
     [Theory, AutoData]
