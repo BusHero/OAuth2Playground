@@ -1,23 +1,14 @@
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using AuthorizationServer;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<IClientRepository, InMemoryClientRepository>();
 builder.Services.AddTransient<IValidator<Request>, RequestValidator>();
-
-builder.Services
-    .AddSingleton<IRequestsRepository, InMemoryRequestsRepository>();
-builder.Services.AddProblemDetails();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton<InMemoryRequestsRepository>();
+builder.Services.AddSingleton<InMemoryCodeRepository>();
 
 var app = builder.Build();
 
@@ -25,7 +16,7 @@ app.UseHttpsRedirection();
 
 app.MapGet("/authorize", (
     [FromServices] IClientRepository clientRepository,
-    [FromServices] IRequestsRepository requestsRepository,
+    [FromServices] InMemoryRequestsRepository requestsRepository,
     [AsParameters] AuthorizeRequest request) =>
 {
     var client = clientRepository.FindClientById(request.ClientId);
@@ -34,19 +25,27 @@ app.MapGet("/authorize", (
         return Results.BadRequest();
     }
 
-    var code = Guid.NewGuid().ToString();
+    var code = Guid
+        .NewGuid()
+        .ToString();
+
     requestsRepository.Add(
         code,
+        client.ClientId,
         request.RedirectUri,
         request.ResponseType,
         request.State);
 
-    return Results.Ok(new { Code = code });
+    return Results.Ok(new
+    {
+        Code = code
+    });
 });
 
 app.MapPost("/approve", (
         [AsParameters] Request input,
-        [FromServices] IRequestsRepository requestRepository) =>
+        [FromServices] InMemoryRequestsRepository requestRepository,
+        [FromServices] InMemoryCodeRepository codesRepository) =>
     {
         var request = requestRepository.GetAndRemoveRequest(input.RequestId);
         if (request is null)
@@ -77,9 +76,14 @@ app.MapPost("/approve", (
             return Results.Redirect(foo);
         }
 
+        var code = Guid.NewGuid().ToString();
+        codesRepository.Add(
+            code: code, 
+            clientId: request.ClientId);
+
         var uri = new UriBuilder(request.RedirectUri)
         {
-            Query = $"code={Guid.NewGuid()}&state={request.State}"
+            Query = $"code={code}&state={request.State}"
         }.Uri.ToString();
 
         return Results.Redirect(uri);
@@ -91,7 +95,9 @@ app.MapPost(
         "/token", async (
             HttpContext context,
             [FromForm(Name = "grant_type")] string grantType,
-            [FromServices] IClientRepository clientRepository) =>
+            [FromForm(Name = "code")] string code,
+            [FromServices] IClientRepository clientRepository,
+            [FromServices] InMemoryCodeRepository codesRepository) =>
         {
             var clientId = default(string);
             var clientSecret = default(string);
@@ -151,6 +157,13 @@ app.MapPost(
                 return Results.BadRequest();
             }
 
+            var clientIdAssociatedWithCode = codesRepository.GetClientForCode(code);
+
+            if (clientIdAssociatedWithCode != client.ClientId)
+            {
+                return Results.BadRequest();
+            }
+
             return Results.Ok(new { Client = clientId, Secret = clientSecret });
         })
     .DisableAntiforgery();
@@ -158,31 +171,3 @@ app.MapPost(
 app.Run();
 
 public abstract partial class Program;
-
-public static class StringExtensions
-{
-    private static string ToBase64String(this byte[] bytes)
-        => Convert.ToBase64String(bytes);
-
-    public static Uri ToUri(this string uri) => new(uri);
-
-    public static string ToBase64String(this string input) =>
-        Encoding
-            .UTF8
-            .GetBytes(input)
-            .ToBase64String();
-
-    public static string FromBase64String(this string input)
-    {
-        var bytes = Convert.FromBase64String(input);
-        return Encoding.UTF8.GetString(bytes);
-    }
-
-    private static byte[] GetBytes(this string input, Encoding encoding)
-        => encoding.GetBytes(input);
-
-    private static string ToBase64String(this object @object) =>
-        JsonSerializer
-            .Serialize(@object)
-            .ToBase64String();
-}
