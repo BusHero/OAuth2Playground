@@ -157,7 +157,7 @@ app.MapPost(
                 return Results.BadRequest();
             }
 
-            var clientIdAssociatedWithCode = codesRepository.GetClientForCode(code);
+            var clientIdAssociatedWithCode = codesRepository.GetAndRemoveClientForCode(code);
 
             if (clientIdAssociatedWithCode != client.ClientId)
             {

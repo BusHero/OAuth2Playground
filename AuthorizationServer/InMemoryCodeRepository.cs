@@ -9,7 +9,7 @@ internal sealed class InMemoryCodeRepository
         _codes[code] = clientId;
     }
 
-    public string? GetClientForCode(string code)
+    public string? GetAndRemoveClientForCode(string code)
     {
         _codes.Remove(code, out var clientId);
 
