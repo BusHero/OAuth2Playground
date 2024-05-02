@@ -88,56 +88,72 @@ app.MapPost("/approve", (
     .AddEndpointFilter<ValidationFilter<Request>>();
 
 app.MapPost(
-    "/token", async (
-        HttpContext context,
-        [FromServices] IClientRepository clientRepository) =>
-    {
-        var clientId = default(string);
-        var clientSecret = default(string);
-        var auth = context.Request.Headers.Authorization;
-        if (auth.Count != 0)
+        "/token", async (
+            HttpContext context,
+            [FromForm(Name = "grant_type")] string grantType,
+            [FromServices] IClientRepository clientRepository) =>
         {
-            var foo = AuthenticationHeaderValue.Parse(auth!);
-            var stuff = foo.Parameter!.FromBase64String();
-            var parameters = stuff.Split(':');
+            var clientId = default(string);
+            var clientSecret = default(string);
+            var auth = context.Request.Headers.Authorization;
+            if (auth.Count != 0)
+            {
+                var foo = AuthenticationHeaderValue.Parse(auth!);
+                var stuff = foo.Parameter!.FromBase64String();
+                var parameters = stuff.Split(':');
 
-            clientId = parameters[0];
-            clientSecret = parameters[1];
-        }
+                clientId = parameters[0];
+                clientSecret = parameters[1];
+            }
 
-        var clientFromBody = default(string);
-        var secretFromBody = default(string);
-        if (context.Request.HasFormContentType)
-        {
-            var formData = await context.Request.ReadFormAsync();
-            clientFromBody = formData["client"].ToString();
-            secretFromBody = formData["secret"].ToString();
-        }
+            var clientFromBody = default(string);
+            var secretFromBody = default(string);
+            if (context.Request.HasFormContentType)
+            {
+                var formData = await context
+                    .Request
+                    .ReadFormAsync();
+                if (formData.TryGetValue("client", out var clientFromBody1))
+                {
+                    clientFromBody = clientFromBody1.ToString();
+                }
 
-        if (clientId is not null && clientFromBody is not null)
-        {
-            return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
-        }
+                if (formData.TryGetValue("secret", out var secretFromBody1))
+                {
+                    secretFromBody = secretFromBody1.ToString();
+                }
+            }
 
-        if (clientId is null && clientFromBody is null)
-        {
-            return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
-        }
+            if (clientId is not null && clientFromBody is not null)
+            {
+                return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
+            }
 
-        var client = clientRepository.FindClientById(clientId ?? clientFromBody!);
-        if (client is null)
-        {
-            return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
-        }
+            if (clientId is null && clientFromBody is null)
+            {
+                return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
+            }
 
-        var actualSecret = clientSecret ?? secretFromBody;
-        if (client.ClientSecret != actualSecret)
-        {
-            return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
-        }
+            var client = clientRepository.FindClientById(clientId ?? clientFromBody!);
+            if (client is null)
+            {
+                return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
+            }
 
-        return Results.Ok(new { Client = clientId, Secret = clientSecret });
-    });
+            var actualSecret = clientSecret ?? secretFromBody;
+            if (client.ClientSecret != actualSecret)
+            {
+                return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
+            }
+
+            if (grantType != "authorization_code")
+            {
+                return Results.BadRequest();
+            }
+
+            return Results.Ok(new { Client = clientId, Secret = clientSecret });
+        })
+    .DisableAntiforgery();
 
 app.Run();
 

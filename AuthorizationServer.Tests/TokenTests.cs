@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using FluentAssertions.Execution;
 using Flurl.Http;
 
 namespace AuthorizationServer.Tests;
@@ -15,22 +14,8 @@ public sealed class TokenTests(CustomFactory factory)
         = factory.ClientRepository;
 
     [Theory, AutoData]
-    public async Task BasicAuth_NonExistingClient_Returns401(
-        string client,
-        string secret)
-    {
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .WithBasicAuth(client, secret)
-            .PostAsync();
-
-        result.StatusCode.Should().Be(401);
-    }
-
-    [Theory, AutoData]
-    public async Task BasicAuth_ExistingClient_Returns200(Client client)
+    public async Task HappyPath_Returns200(
+        Client client)
     {
         _clientRepository.AddClient(client);
 
@@ -39,13 +24,73 @@ public sealed class TokenTests(CustomFactory factory)
             .AllowAnyHttpStatus()
             .AppendPathSegment("token")
             .WithBasicAuth(client.ClientId, client.ClientSecret)
-            .PostAsync();
+            .PostUrlEncodedAsync(new Dictionary<string, string>
+            {
+                ["grant_type"] = "authorization_code",
+            });
 
         result.StatusCode.Should().Be(200);
     }
+    
+    [Theory, AutoData]
+    public async Task MissingGrantType_Returns400(
+        Client client)
+    {
+        _clientRepository.AddClient(client);
+
+        var result = await _client
+            .Request()
+            .AllowAnyHttpStatus()
+            .AppendPathSegment("token")
+            .WithBasicAuth(client.ClientId, client.ClientSecret)
+            .PostUrlEncodedAsync(new Dictionary<string, string>
+            {
+                ["grant_type1"] = "authorization_code",
+            });
+
+        result.StatusCode.Should().Be(400);
+    }
 
     [Theory, AutoData]
-    public async Task BasicAuth_WrongSecret_Returns401(
+    public async Task GrantTypeIsNotAuthorizationCode_Returns400(
+        Client client,
+        string authorizationCode)
+    {
+        _clientRepository.AddClient(client);
+
+        var result = await _client
+            .Request()
+            .AllowAnyHttpStatus()
+            .AppendPathSegment("token")
+            .WithBasicAuth(client.ClientId, client.ClientSecret)
+            .PostUrlEncodedAsync(new Dictionary<string, string>
+            {
+                ["grant_type"] = authorizationCode,
+            });
+
+        result.StatusCode.Should().Be(400);
+    }
+
+    [Theory, AutoData]
+    public async Task WrongClient_Returns401(
+        string client,
+        string secret)
+    {
+        var result = await _client
+            .Request()
+            .AllowAnyHttpStatus()
+            .AppendPathSegment("token")
+            .WithBasicAuth(client, secret)
+            .PostUrlEncodedAsync(new Dictionary<string, string>
+            {
+                ["grant_type"] = "authorization_code",
+            });
+
+        result.StatusCode.Should().Be(401);
+    }
+
+    [Theory, AutoData]
+    public async Task WrongSecret_Returns401(
         Client client,
         string wrongSecret)
     {
@@ -56,30 +101,31 @@ public sealed class TokenTests(CustomFactory factory)
             .AllowAnyHttpStatus()
             .AppendPathSegment("token")
             .WithBasicAuth(client.ClientId, wrongSecret)
-            .PostAsync();
+            .PostUrlEncodedAsync(new Dictionary<string, string>
+            {
+                ["grant_type"] = "authorization_code",
+            });
 
         result.StatusCode.Should().Be(401);
     }
 
     [Fact]
-    public async Task NoAuth_Returns401()
+    public async Task NoCredentials_Return401()
     {
         var result = await _client
             .Request()
             .AllowAnyHttpStatus()
             .AppendPathSegment("token")
-            .PostAsync();
+            .PostUrlEncodedAsync(new Dictionary<string, string>
+            {
+                ["grant_type"] = "authorization_code",
+            });
 
-        using (new AssertionScope())
-        {
-            result.StatusCode.Should().Be(401);
-            var error = await result.GetJsonAsync<ErrorResponse>();
-            error.Error.Should().Be("invalid_client");
-        }
+        result.StatusCode.Should().Be(401);
     }
 
     [Theory, AutoData]
-    public async Task ClientAndSecretInBody_ReturnsThem(
+    public async Task CredentialsInBody_Returns200(
         Client client)
     {
         _clientRepository.AddClient(client);
@@ -92,36 +138,53 @@ public sealed class TokenTests(CustomFactory factory)
             {
                 ["client"] = client.ClientId,
                 ["secret"] = client.ClientSecret,
+                ["grant_type"] = "authorization_code",
             });
 
         result.StatusCode.Should().Be(200);
     }
 
     [Theory, AutoData]
-    public async Task DetailsInBothHeaderAndBody_401(
-        string client,
-        string secret)
+    public async Task SameCredentialsInHeaderAndBody_Returns401(
+        Client client)
     {
+        _clientRepository.AddClient(client);
+
         var result = await _client
             .Request()
             .AllowAnyHttpStatus()
             .AppendPathSegment("token")
-            .WithBasicAuth(client, secret)
+            .WithBasicAuth(client.ClientId, client.ClientSecret)
             .PostUrlEncodedAsync(new Dictionary<string, string>
             {
-                ["client"] = client,
-                ["secret"] = secret,
+                ["client"] = client.ClientId,
+                ["secret"] = client.ClientSecret,
+                ["grant_type"] = "authorization_code",
             });
 
-        using (new AssertionScope())
-        {
-            result.StatusCode.Should().Be(401);
-            var error = await result.GetJsonAsync<ErrorResponse>();
-            error.Error.Should().Be("invalid_client");
-        }
+        result.StatusCode.Should().Be(401);
     }
 
-    private sealed record ErrorResponse(string Error);
+    [Theory, AutoData]
+    public async Task DifferentCredentialsInHeaderAndBody_Returns401(
+        Client client1,
+        Client client2)
+    {
+        _clientRepository.AddClient(client1);
+        _clientRepository.AddClient(client2);
 
-    private sealed record SuccessResponse(string Client, string Secret);
+        var result = await _client
+            .Request()
+            .AllowAnyHttpStatus()
+            .AppendPathSegment("token")
+            .WithBasicAuth(client1.ClientId, client1.ClientSecret)
+            .PostUrlEncodedAsync(new Dictionary<string, string>
+            {
+                ["client"] = client2.ClientId,
+                ["secret"] = client2.ClientSecret,
+                ["grant_type"] = "authorization_code",
+            });
+
+        result.StatusCode.Should().Be(401);
+    }
 }
