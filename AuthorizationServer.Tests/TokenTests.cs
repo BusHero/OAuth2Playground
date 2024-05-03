@@ -64,9 +64,12 @@ public sealed class TokenTests(CustomFactory factory)
                 .WhoseValue
                 .Should()
                 .Be("Bearer");
-            
+
             json.Should()
-                .ContainKey("access_token");
+                .ContainKey("access_token")
+                .WhoseValue
+                .Should()
+                .NotBeNullOrEmpty();
         }
     }
 
