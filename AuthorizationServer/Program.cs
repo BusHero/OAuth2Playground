@@ -104,8 +104,13 @@ app.MapPost(
             var auth = context.Request.Headers.Authorization;
             if (auth.Count != 0)
             {
-                var foo = AuthenticationHeaderValue.Parse(auth!);
-                var stuff = foo.Parameter!.FromBase64String();
+                var authHeader = AuthenticationHeaderValue.Parse(auth!);
+                if (authHeader.Scheme != "Basic")
+                {
+                    return Results.BadRequest();
+                }
+
+                var stuff = authHeader.Parameter!.FromBase64String();
                 var parameters = stuff.Split(':');
 
                 clientId = parameters[0];

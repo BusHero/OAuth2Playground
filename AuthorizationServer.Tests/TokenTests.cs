@@ -298,6 +298,29 @@ public sealed class TokenTests(CustomFactory factory)
     }
 
     [Theory, AutoData]
+    public async Task WrongAuthenticationScheme_Returns400(
+        Client client,
+        string token)
+    {
+        _clientRepository.AddClient(client);
+
+        var code = await GetAuthorizationCode(client);
+
+        var result = await _client
+            .Request()
+            .AllowAnyHttpStatus()
+            .AppendPathSegment("token")
+            .WithOAuthBearerToken(token)
+            .PostUrlEncodedAsync(new Dictionary<string, string>
+            {
+                ["grant_type"] = "authorization_code",
+                ["code"] = code,
+            });
+
+        result.StatusCode.Should().Be(400);
+    }
+
+    [Theory, AutoData]
     public async Task DifferentCredentialsInHeaderAndBody_Returns401(
         Client client1,
         Client client2)
