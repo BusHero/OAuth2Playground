@@ -179,4 +179,4 @@ app.MapPost(
 
 app.Run();
 
-public abstract partial class Program;
+public sealed partial class Program;
