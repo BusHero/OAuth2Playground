@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using AutoFixture.Xunit2;
 using Microsoft.AspNetCore.Mvc.Testing;
+using WebApplication2;
 
 namespace WebResourceTests;
 

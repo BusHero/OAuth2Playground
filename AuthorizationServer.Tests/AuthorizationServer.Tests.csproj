@@ -32,6 +32,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\AuthorizationServer\AuthorizationServer.csproj" />
+      <ProjectReference Include="..\WebResource\WebResource.csproj" />
     </ItemGroup>
 
 </Project>

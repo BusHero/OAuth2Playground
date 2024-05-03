@@ -4,117 +4,126 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 
-var builder = WebApplication.CreateBuilder(args);
+namespace WebApplication2;
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddLogging();
-builder.Services.AddSingleton<TokenExtractor>();
-
-var app = builder.Build();
-
-app.UseHttpsRedirection();
-
-app.MapPost("/resource", async (
-    [FromServices] TokenExtractor extractor,
-    HttpContext context) =>
+public partial class Program
 {
-    var token = await extractor.GetBearerToken(context);
-    var isTokenValid = IsTokenValid(token);
-    return isTokenValid 
-        ? Results.Ok(new { Message = "Hello, World!", }) 
-        : Results.Unauthorized();
-});
-
-app.Run();
-return;
-
-bool IsTokenValid(string? token)
-{
-    if (string.IsNullOrEmpty(token))
+    public static void Main(string[] args)
     {
-        return false;
+        var builder = WebApplication.CreateBuilder(args);
+
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+        builder.Services.AddLogging();
+        builder.Services.AddSingleton<TokenExtractor>();
+
+        var app = builder.Build();
+
+        app.UseHttpsRedirection();
+
+        app.MapPost("/resource", GetResource);
+
+        app.MapGet("/resource2", () => Results.Ok());
+
+        app.Run();
     }
 
-    var parts = token.Split('.');
-
-    if (parts.Length != 3)
+    private static async Task<IResult> GetResource([FromServices] TokenExtractor extractor, HttpContext context)
     {
-        return false;
+        var token = await extractor.GetBearerToken(context);
+        var isTokenValid = IsTokenValid(token);
+        return isTokenValid
+            ? Results.Ok(new { Message = "Hello, World!", })
+            : Results.Unauthorized();
     }
 
-    if (string.IsNullOrEmpty(parts[2]))
+    private static bool IsTokenValid(string? token)
     {
-        return false;
+        if (string.IsNullOrEmpty(token))
+        {
+            return false;
+        }
+
+        var parts = token.Split('.');
+
+        if (parts.Length != 3)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(parts[2]))
+        {
+            return false;
+        }
+
+        var verified = HMACSHA256
+            .HashData(
+                Encoding.ASCII.GetBytes("secret"),
+                Encoding.ASCII.GetBytes($"{parts[0]}.{parts[1]}"));
+
+        var signature = Convert
+            .ToBase64String(verified)
+            .Replace("/", "_")
+            .Replace("=", "");
+
+        if (signature != parts[2])
+        {
+            return false;
+        }
+
+        var payloadAsJson = parts[1].FromBase64();
+
+        var payload = JsonDocument.Parse(payloadAsJson)
+            .RootElement;
+
+        if (payload.GetProperty("iss").GetString() != "http://localhost:9001")
+        {
+            return false;
+        }
+
+        if (!payload.GetProperty("aud").GetString()!.Contains("http://localhost:9002"))
+        {
+            return false;
+        }
+
+        var issuedAt = payload
+            .GetProperty("iat")
+            .GetInt64();
+
+        var now = DateTimeOffset.Now.ToUnixTimeSeconds();
+        if (now < issuedAt)
+        {
+            return false;
+        }
+
+        var expireAt = payload
+            .GetProperty("exp")
+            .GetInt64();
+
+        if (expireAt < now)
+        {
+            return false;
+        }
+
+        if (!payload.TryGetProperty("scope", out var scopeProperty))
+        {
+            return false;
+        }
+
+        var scope = scopeProperty.GetString();
+
+        if (string.IsNullOrEmpty(scope))
+        {
+            return false;
+        }
+
+        if (!scope.Split(' ').Contains("api1"))
+        {
+            return false;
+        }
+
+        return true;
     }
-
-    var verified = HMACSHA256
-        .HashData(
-            Encoding.ASCII.GetBytes("secret"),
-            Encoding.ASCII.GetBytes($"{parts[0]}.{parts[1]}"));
-
-    var signature = Convert
-        .ToBase64String(verified)
-        .Replace("/", "_")
-        .Replace("=", "");
-
-    if (signature != parts[2])
-    {
-        return false;
-    }
-
-    var payloadAsJson = parts[1].FromBase64();
-
-    var payload = JsonDocument.Parse(payloadAsJson)
-        .RootElement;
-
-    if (payload.GetProperty("iss").GetString() != "http://localhost:9001")
-    {
-        return false;
-    }
-
-    if (!payload.GetProperty("aud").GetString()!.Contains("http://localhost:9002"))
-    {
-        return false;
-    }
-
-    var issuedAt = payload
-        .GetProperty("iat")
-        .GetInt64();
-    
-    var now = DateTimeOffset.Now.ToUnixTimeSeconds();
-    if (now < issuedAt)
-    {
-        return false;
-    }
-
-    var expireAt = payload
-        .GetProperty("exp")
-        .GetInt64();
-
-    if (expireAt < now)
-    {
-        return false;
-    }
-
-    if (!payload.TryGetProperty("scope", out var scopeProperty))
-    {
-        return false;
-    }
-
-    var scope = scopeProperty.GetString();
-
-    if (string.IsNullOrEmpty(scope))
-    {
-        return false;
-    }
-
-    if (!scope.Split(' ').Contains("api1"))
-    {
-        return false;
-    }
-
-    return true;
 }
 
 public partial class Program;
