@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace AuthorizationServer.Tests;
 
-public sealed class CustomFactory : WebApplicationFactory<Program>
+public sealed class CustomAuthorizationServiceFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -17,5 +17,4 @@ public sealed class CustomFactory : WebApplicationFactory<Program>
     }
 
     public InMemoryClientRepository ClientRepository { get; } = new();
-
 }

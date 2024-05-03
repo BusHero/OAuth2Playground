@@ -5,14 +5,14 @@ using Flurl.Http;
 namespace AuthorizationServer.Tests;
 
 [SuppressMessage("ReSharper", "ClassNeverInstantiated.Local")]
-public sealed class TokenTests(CustomFactory factory)
-    : IClassFixture<CustomFactory>
+public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationServiceFactory)
+    : IClassFixture<CustomAuthorizationServiceFactory>
 {
     private readonly FlurlClient _client
-        = new(factory.CreateDefaultClient());
+        = new(authorizationServiceFactory.CreateDefaultClient());
 
     private readonly InMemoryClientRepository _clientRepository
-        = factory.ClientRepository;
+        = authorizationServiceFactory.ClientRepository;
 
     [Theory, AutoData]
     public async Task HappyPath_Returns200(

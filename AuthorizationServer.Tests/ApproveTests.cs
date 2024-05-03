@@ -2,14 +2,14 @@
 
 namespace AuthorizationServer.Tests;
 
-public sealed class ApproveTests(CustomFactory factory)
-    : IClassFixture<CustomFactory>
+public sealed class ApproveTests(CustomAuthorizationServiceFactory authorizationServiceFactory)
+    : IClassFixture<CustomAuthorizationServiceFactory>
 {
     private readonly FlurlClient _client
-        = new(factory.CreateDefaultClient());
+        = new(authorizationServiceFactory.CreateDefaultClient());
 
     private readonly InMemoryClientRepository _clientRepository
-        = factory.ClientRepository;
+        = authorizationServiceFactory.ClientRepository;
 
     [Theory, AutoData]
     public async Task Approve_RequiredId_Redirect(
