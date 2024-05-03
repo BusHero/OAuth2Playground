@@ -1,5 +1,4 @@
-﻿using FluentAssertions.Execution;
-using Flurl.Http;
+﻿using Flurl.Http;
 
 namespace AuthorizationServer.Tests;
 
