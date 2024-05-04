@@ -1,13 +1,13 @@
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApplication2;
 
-public partial class Program
+public class Program
 {
     public static void Main(string[] args)
     {
@@ -24,32 +24,36 @@ public partial class Program
 
         app.MapPost("/resource", GetResource);
 
-        app.MapGet("/resource2", Resource2);
+        app.MapGet("/resource2", async (HttpContext context) =>
+        {
+            var authorizationHeader = context
+                .Request
+                .Headers
+                .Authorization;
+
+            if (authorizationHeader.Count == 0)
+            {
+                return Results.Unauthorized();
+            }
+
+            var headerValue = AuthenticationHeaderValue.Parse(authorizationHeader!);
+
+            if (headerValue.Scheme != "Bearer")
+            {
+                return Results.Unauthorized();
+            }
+
+            var lines = await File.ReadAllLinesAsync($"{Path.GetTempPath()}/tokens");
+
+            if (!lines.Contains(headerValue.Parameter))
+            {
+                return Results.Unauthorized();
+            }
+
+            return Results.Ok();
+        });
 
         app.Run();
-    }
-
-    private static IResult Resource2(
-        HttpContext context)
-    {
-        var authorizationHeader = context
-            .Request
-            .Headers
-            .Authorization;
-
-        if (authorizationHeader.Count == 0)
-        {
-            return Results.Unauthorized();
-        }
-
-        var headerValue = AuthenticationHeaderValue.Parse(authorizationHeader!);
-
-        if (headerValue.Scheme != "Bearer")
-        {
-            return Results.Unauthorized();
-        }
-
-        return Results.Ok();
     }
 
     private static async Task<IResult> GetResource([FromServices] TokenExtractor extractor, HttpContext context)
@@ -148,74 +152,4 @@ public partial class Program
 
         return true;
     }
-}
-
-public partial class Program;
-
-public static class Base64Extensions
-{
-    public static string FromBase64(this string base64)
-    {
-        var bytes = Convert.FromBase64String(base64);
-        var @string = Encoding.UTF8.GetString(bytes);
-        return @string;
-    }
-}
-
-public class BearerToken
-{
-    public Header? Header { get; set; }
-
-    public Payload? Payload { get; set; }
-}
-
-public class Header
-{
-    [JsonPropertyName("typ")] public string? Type { get; set; }
-
-    [JsonPropertyName("alg")] public string? Algorithm { get; set; }
-}
-
-public class Payload
-{
-    [JsonPropertyName("iss")] public string? Issuer { get; set; }
-
-    [JsonPropertyName("sub")] public string? Subject { get; set; }
-
-    [JsonPropertyName("aud")] public string? Audience { get; set; }
-
-    [JsonPropertyName("iat")] public int? IssuedAt { get; set; }
-
-    [JsonPropertyName("exp")] public int? ExpirationTime { get; set; }
-
-    [JsonPropertyName("jti")] public string? JwtId { get; set; }
-}
-
-internal class TokenExtractor(ILogger<TokenExtractor> logger)
-{
-    public async Task<string?> GetBearerToken(HttpContext context)
-    {
-        return context.Request switch
-        {
-            { Headers.Authorization: [{ } x] } => x.Split(' ') switch
-            {
-                ["Bearer", var token] => token,
-                _ => null
-            },
-            { HasFormContentType: true } x => await x.ReadFormAsync() switch
-            {
-                var form when form.TryGetValue("access_token", out var accessToken) => accessToken.ToString(),
-                _ => null,
-            },
-            { Query: var query } when query.TryGetValue("access_token", out var accessToken) => accessToken.ToString(),
-            _ => null,
-        };
-    }
-}
-
-public class Content
-{
-    public string? Token { get; set; }
-
-    public bool IsVerified { get; set; }
 }

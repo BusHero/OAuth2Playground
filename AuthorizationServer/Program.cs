@@ -169,9 +169,13 @@ app.MapPost(
                 return Results.BadRequest();
             }
 
+            var token = Guid.NewGuid().ToString();
+
+            await File.WriteAllLinesAsync($"{Path.GetTempPath()}/tokens", [token]);
+
             return Results.Ok(new
             {
-                access_token = clientId,
+                access_token = token,
                 token_type = "Bearer",
             });
         })
