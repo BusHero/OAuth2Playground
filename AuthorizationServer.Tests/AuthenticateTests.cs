@@ -12,7 +12,7 @@ public sealed class AuthenticateTests(
         = authorizationServiceFactory.ClientRepository;
 
     [Theory, AutoData]
-    public async Task Authenticate_ValidClientId_ReturnsOk(
+    public async Task ValidClientId_ReturnsOk(
         Client oauthClient)
     {
         _clientRepository.AddClient(oauthClient);
@@ -21,11 +21,14 @@ public sealed class AuthenticateTests(
             .CreateAuthorizationEndpoint(oauthClient)
             .GetAsync();
 
-        result.StatusCode.Should().Be(200);
+        result
+            .StatusCode
+            .Should()
+            .Be(200);
     }
 
     [Theory, AutoData]
-    public async Task Authenticate_ValidClientId_ReturnsCode(
+    public async Task ValidClientId_ReturnsCode(
         Client oauthClient)
     {
         _clientRepository.AddClient(oauthClient);
@@ -35,11 +38,14 @@ public sealed class AuthenticateTests(
             .GetAsync();
 
         var code = await result.GetStringAsync();
-        code.Should().NotBeNullOrEmpty();
+
+        code
+            .Should()
+            .NotBeNullOrEmpty();
     }
 
     [Theory, AutoData]
-    public async Task Authenticate_NoClientId_ReturnsBadRequest(Client oauthClient)
+    public async Task NoClientId_ReturnsBadRequest(Client oauthClient)
     {
         _clientRepository.AddClient(oauthClient);
 
@@ -48,13 +54,14 @@ public sealed class AuthenticateTests(
             .RemoveQueryParam("client_id")
             .GetAsync();
 
-        result.StatusCode
+        result
+            .StatusCode
             .Should()
             .Be(400);
     }
 
     [Theory, AutoData]
-    public async Task Authenticate_WrongClientId_ReturnsBadRequest(Client oauthClient)
+    public async Task WrongClientId_ReturnsBadRequest(Client oauthClient)
     {
         _clientRepository.AddClient(oauthClient);
 
@@ -63,13 +70,14 @@ public sealed class AuthenticateTests(
             .SetQueryParam("client_id", "another_client")
             .GetAsync();
 
-        result.StatusCode
+        result
+            .StatusCode
             .Should()
             .Be(400);
     }
 
     [Theory, AutoData]
-    public async Task Authenticate_NoRedirectUri_ReturnsBadRequest(Client oauthClient)
+    public async Task NoRedirectUri_ReturnsBadRequest(Client oauthClient)
     {
         _clientRepository.AddClient(oauthClient);
 
@@ -78,13 +86,14 @@ public sealed class AuthenticateTests(
             .RemoveQueryParam("redirect_uri")
             .GetAsync();
 
-        result.StatusCode
+        result
+            .StatusCode
             .Should()
             .Be(400);
     }
 
     [Theory, AutoData]
-    public async Task Authenticate_WrongRedirectUri_ReturnsBadRequest(Client oauthClient)
+    public async Task WrongRedirectUri_ReturnsBadRequest(Client oauthClient)
     {
         _clientRepository.AddClient(oauthClient);
 
@@ -93,13 +102,14 @@ public sealed class AuthenticateTests(
             .SetQueryParam("redirect_uri", "http://example.com")
             .GetAsync();
 
-        result.StatusCode
+        result
+            .StatusCode
             .Should()
             .Be(400);
     }
 
     [Theory, AutoData]
-    public async Task Authenticate_NoResponseType_ReturnsBadRequest(Client oauthClient)
+    public async Task NoResponseType_ReturnsBadRequest(Client oauthClient)
     {
         _clientRepository.AddClient(oauthClient);
 
@@ -108,13 +118,14 @@ public sealed class AuthenticateTests(
             .RemoveQueryParam("response_type")
             .GetAsync();
 
-        result.StatusCode
+        result
+            .StatusCode
             .Should()
             .Be(400);
     }
 
     [Theory, AutoData]
-    public async Task Authenticate_NoState_Ok(Client oauthClient)
+    public async Task NoState_ReturnsOk(Client oauthClient)
     {
         _clientRepository.AddClient(oauthClient);
 
@@ -123,7 +134,8 @@ public sealed class AuthenticateTests(
             .RemoveQueryParam("state")
             .GetAsync();
 
-        result.StatusCode
+        result
+            .StatusCode
             .Should()
             .Be(200);
     }
