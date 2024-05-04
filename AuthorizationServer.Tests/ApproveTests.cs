@@ -17,8 +17,14 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
     {
         _clientRepository.AddClient(client);
 
-        var response = await (await _client
-                .CreateAuthorizationEndpoint(client)
+        var response = await (await ((IFlurlClient)_client).Request()
+                .AllowAnyHttpStatus()
+                .WithAutoRedirect(false)
+                .AppendPathSegment("authorize")
+                .AppendQueryParam("response_type", "code")
+                .AppendQueryParam("redirect_uri", client.RedirectUris[0])
+                .AppendQueryParam("state", "")
+                .AppendQueryParam("client_id", client.ClientId)
                 .GetAsync())
             .GetJsonAsync<Response>();
 
@@ -38,8 +44,14 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
     {
         _clientRepository.AddClient(client);
 
-        var response = await (await _client
-                .CreateAuthorizationEndpoint(client)
+        var response = await (await ((IFlurlClient)_client).Request()
+                .AllowAnyHttpStatus()
+                .WithAutoRedirect(false)
+                .AppendPathSegment("authorize")
+                .AppendQueryParam("response_type", "code")
+                .AppendQueryParam("redirect_uri", client.RedirectUris[0])
+                .AppendQueryParam("state", "")
+                .AppendQueryParam("client_id", client.ClientId)
                 .GetAsync())
             .GetJsonAsync<Response>();
 
@@ -63,8 +75,14 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
     {
         _clientRepository.AddClient(client);
 
-        await _client
-            .CreateAuthorizationEndpoint(client)
+        await ((IFlurlClient)_client).Request()
+            .AllowAnyHttpStatus()
+            .WithAutoRedirect(false)
+            .AppendPathSegment("authorize")
+            .AppendQueryParam("response_type", "code")
+            .AppendQueryParam("redirect_uri", client.RedirectUris[0])
+            .AppendQueryParam("state", "")
+            .AppendQueryParam("client_id", client.ClientId)
             .GetAsync();
 
         var result = await _client
@@ -84,8 +102,14 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
     {
         _clientRepository.AddClient(client);
 
-        await _client
-            .CreateAuthorizationEndpoint(client)
+        await ((IFlurlClient)_client).Request()
+            .AllowAnyHttpStatus()
+            .WithAutoRedirect(false)
+            .AppendPathSegment("authorize")
+            .AppendQueryParam("response_type", "code")
+            .AppendQueryParam("redirect_uri", client.RedirectUris[0])
+            .AppendQueryParam("state", "")
+            .AppendQueryParam("client_id", client.ClientId)
             .GetAsync();
 
         var result = await _client
@@ -105,8 +129,14 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
         Client client)
     {
         _clientRepository.AddClient(client);
-        var response = await (await _client
-                .CreateAuthorizationEndpoint(client)
+        var response = await (await ((IFlurlClient)_client).Request()
+                .AllowAnyHttpStatus()
+                .WithAutoRedirect(false)
+                .AppendPathSegment("authorize")
+                .AppendQueryParam("response_type", "code")
+                .AppendQueryParam("redirect_uri", client.RedirectUris[0])
+                .AppendQueryParam("state", "")
+                .AppendQueryParam("client_id", client.ClientId)
                 .GetAsync())
             .GetJsonAsync<Response>();
 
@@ -128,8 +158,14 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
         Client client)
     {
         _clientRepository.AddClient(client);
-        var response = await (await _client
-                .CreateAuthorizationEndpoint(client)
+        var response = await (await ((IFlurlClient)_client).Request()
+                .AllowAnyHttpStatus()
+                .WithAutoRedirect(false)
+                .AppendPathSegment("authorize")
+                .AppendQueryParam("response_type", "code")
+                .AppendQueryParam("redirect_uri", client.RedirectUris[0])
+                .AppendQueryParam("state", "")
+                .AppendQueryParam("client_id", client.ClientId)
                 .GetAsync())
             .GetJsonAsync<Response>();
 
@@ -159,8 +195,14 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
     {
         _clientRepository.AddClient(client);
 
-        var response = await (await _client
-                .CreateAuthorizationEndpoint(client)
+        var response = await (await ((IFlurlClient)_client).Request()
+                .AllowAnyHttpStatus()
+                .WithAutoRedirect(false)
+                .AppendPathSegment("authorize")
+                .AppendQueryParam("response_type", "code")
+                .AppendQueryParam("redirect_uri", client.RedirectUris[0])
+                .AppendQueryParam("state", "")
+                .AppendQueryParam("client_id", client.ClientId)
                 .AppendQueryParam("response_type", responseType)
                 .GetAsync())
             .GetJsonAsync<Response>();
@@ -188,8 +230,14 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
         string state)
     {
         _clientRepository.AddClient(client);
-        var response = await (await _client
-                .CreateAuthorizationEndpoint(client, state)
+        var response = await (await ((IFlurlClient)_client).Request()
+                .AllowAnyHttpStatus()
+                .WithAutoRedirect(false)
+                .AppendPathSegment("authorize")
+                .AppendQueryParam("response_type", "code")
+                .AppendQueryParam("redirect_uri", client.RedirectUris[0])
+                .AppendQueryParam("state", state)
+                .AppendQueryParam("client_id", client.ClientId)
                 .GetAsync())
             .GetJsonAsync<Response>();
 
@@ -215,8 +263,14 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
         Client client)
     {
         _clientRepository.AddClient(client);
-        var response = await (await _client
-                .CreateAuthorizationEndpoint(client)
+        var response = await (await ((IFlurlClient)_client).Request()
+                .AllowAnyHttpStatus()
+                .WithAutoRedirect(false)
+                .AppendPathSegment("authorize")
+                .AppendQueryParam("response_type", "code")
+                .AppendQueryParam("redirect_uri", client.RedirectUris[0])
+                .AppendQueryParam("state", "")
+                .AppendQueryParam("client_id", client.ClientId)
                 .GetAsync())
             .GetJsonAsync<Response>();
 
