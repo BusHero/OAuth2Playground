@@ -15,8 +15,42 @@ public sealed class ResourceTests(
     private readonly IFlurlClient _resourceClient
         = new FlurlClient(resourceFactory.CreateDefaultClient());
 
+    [Theory, AutoData]
+    public async Task HappyPath_Returns200(
+        string token)
+    {
+        var result = await _resourceClient
+            .Request()
+            .AllowAnyHttpStatus()
+            .AppendPathSegment("resource2")
+            .WithOAuthBearerToken(token)
+            .GetAsync();
+
+        result
+            .StatusCode
+            .Should()
+            .Be(200);
+    }
+
+    [Theory, AutoData]
+    public async Task WeiredValueForAuth_Returns401(
+        string authValue)
+    {
+        var result = await _resourceClient
+            .Request()
+            .AllowAnyHttpStatus()
+            .AppendPathSegment("resource2")
+            .WithHeader("Authorization", authValue)
+            .GetAsync();
+
+        result
+            .StatusCode
+            .Should()
+            .Be(401);
+    }
+
     [Fact]
-    public async Task GetResource2FromResourceClient()
+    public async Task NoAuthorizationHeader_Returns401()
     {
         var result = await _resourceClient
             .Request()
@@ -27,6 +61,6 @@ public sealed class ResourceTests(
         result
             .StatusCode
             .Should()
-            .Be(200);
+            .Be(401);
     }
 }

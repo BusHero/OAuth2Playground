@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -23,9 +24,32 @@ public partial class Program
 
         app.MapPost("/resource", GetResource);
 
-        app.MapGet("/resource2", () => Results.Ok());
+        app.MapGet("/resource2", Resource2);
 
         app.Run();
+    }
+
+    private static IResult Resource2(
+        HttpContext context)
+    {
+        var authorizationHeader = context
+            .Request
+            .Headers
+            .Authorization;
+
+        if (authorizationHeader.Count == 0)
+        {
+            return Results.Unauthorized();
+        }
+
+        var headerValue = AuthenticationHeaderValue.Parse(authorizationHeader!);
+
+        if (headerValue.Scheme != "Bearer")
+        {
+            return Results.Unauthorized();
+        }
+
+        return Results.Ok();
     }
 
     private static async Task<IResult> GetResource([FromServices] TokenExtractor extractor, HttpContext context)
