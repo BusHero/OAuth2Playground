@@ -3,7 +3,7 @@
 namespace AuthorizationServer.Tests;
 
 internal sealed class Authenticator(
-    HttpClient oauthClient, 
+    HttpClient oauthClient,
     InMemoryClientRepository clientRepository)
 {
     private readonly FlurlClient _authClient = new(oauthClient);
@@ -15,7 +15,8 @@ internal sealed class Authenticator(
 
         var requestId = await GetRequestId(
             client.ClientId,
-            client.RedirectUris[0]);
+            client.RedirectUris[0],
+            Guid.NewGuid().ToString());
 
         var authorizationCode = await GetAuthorizationCode(
             requestId);
@@ -27,18 +28,20 @@ internal sealed class Authenticator(
 
         return token;
     }
-    
-    private async Task<string> GetRequestId(
+
+    public async Task<string> GetRequestId(
         string clientId,
-        Uri redirectUri)
+        Uri redirectUri,
+        string state,
+        string responseType = "code")
     {
         var response = await _authClient
             .Request()
             .WithAutoRedirect(false)
             .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", "code")
+            .AppendQueryParam("response_type", responseType)
             .AppendQueryParam("redirect_uri", redirectUri.ToString())
-            .AppendQueryParam("state", Guid.NewGuid().ToString())
+            .AppendQueryParam("state", state)
             .AppendQueryParam("client_id", clientId)
             .GetAsync();
 
@@ -48,19 +51,37 @@ internal sealed class Authenticator(
         return responseObject.Code;
     }
 
-    private async Task<string> GetAuthorizationCode(
-        string requestId)
+    public async Task<IFlurlResponse> PerformAuthorizationCodeRequest(
+        string requestId,
+        string approve = "approve")
+    {
+        var result = await PerformAuthorizationCodeRequest(new Dictionary<string, string>
+        {
+            ["reqId"] = requestId,
+            ["approve"] = "approve",
+        });
+
+        return result;
+    }
+
+    public async Task<IFlurlResponse> PerformAuthorizationCodeRequest(
+        IReadOnlyDictionary<string, string> data)
     {
         var result = await _authClient
             .Request()
             .AllowAnyHttpStatus()
             .WithAutoRedirect(false)
             .AppendPathSegment("approve")
-            .PostUrlEncodedAsync(new Dictionary<string, string>
-            {
-                ["reqId"] = requestId,
-                ["approve"] = "approve",
-            });
+            .PostUrlEncodedAsync(data);
+
+        return result;
+    }
+
+    public async Task<string> GetAuthorizationCode(
+        string requestId)
+    {
+        var result = await PerformAuthorizationCodeRequest(
+            requestId);
 
         var query = result
             .ResponseMessage
@@ -71,7 +92,7 @@ internal sealed class Authenticator(
         return query["code"];
     }
 
-    private async Task<string> GetToken(
+    public async Task<string> GetToken(
         string clientId,
         string clientSecret,
         string authorizationCode)

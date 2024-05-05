@@ -2,37 +2,44 @@
 
 namespace AuthorizationServer.Tests;
 
-public sealed class ApproveTests(CustomAuthorizationServiceFactory authorizationServiceFactory)
+public sealed class ApproveTests
     : IClassFixture<CustomAuthorizationServiceFactory>
 {
-    private readonly FlurlClient _client
-        = new(authorizationServiceFactory.CreateDefaultClient());
+    public ApproveTests(
+        CustomAuthorizationServiceFactory authorizationServiceFactory)
+    {
+        var httpClient = authorizationServiceFactory.CreateDefaultClient();
 
-    private readonly InMemoryClientRepository _clientRepository
-        = authorizationServiceFactory.ClientRepository;
+        _client = new FlurlClient(httpClient);
+        _clientRepository = authorizationServiceFactory.ClientRepository;
+        _authenticator = new Authenticator(httpClient, _clientRepository);
+    }
+
+    private readonly FlurlClient _client;
+
+    private readonly InMemoryClientRepository _clientRepository;
+
+    private readonly Authenticator _authenticator;
 
     [Theory, AutoData]
     public async Task HappyPath_Redirect(
-        Client client,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
-        var response = await (await _client
-                .Request()
-                .AllowAnyHttpStatus()
-                .WithAutoRedirect(false)
-                .AppendPathSegment("authorize")
-                .AppendQueryParam("response_type", "code")
-                .AppendQueryParam("redirect_uri", client.RedirectUris[0])
-                .AppendQueryParam("state", state)
-                .AppendQueryParam("client_id", client.ClientId)
-                .GetAsync())
-            .GetJsonAsync<Response>();
+        var requestId = await _authenticator.GetRequestId(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .CreateApproveEndpoint()
-            .PostUrlEncodedAsync(GetApproveContent(response.Code));
+        var result = await _authenticator.PerformAuthorizationCodeRequest(
+            requestId);
 
         result
             .StatusCode
@@ -42,26 +49,23 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
 
     [Theory, AutoData]
     public async Task HappyPath_ReturnsCode(
-        Client client,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
-        var response = await (await _client
-                .Request()
-                .AllowAnyHttpStatus()
-                .WithAutoRedirect(false)
-                .AppendPathSegment("authorize")
-                .AppendQueryParam("response_type", "code")
-                .AppendQueryParam("redirect_uri", client.RedirectUris[0])
-                .AppendQueryParam("state", state)
-                .AppendQueryParam("client_id", client.ClientId)
-                .GetAsync())
-            .GetJsonAsync<Response>();
+        var requestId = await _authenticator.GetRequestId(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .CreateApproveEndpoint()
-            .PostUrlEncodedAsync(GetApproveContent(response.Code));
+        var result = await _authenticator.PerformAuthorizationCodeRequest(
+            requestId);
 
         result
             .ResponseMessage
@@ -74,26 +78,23 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
 
     [Theory, AutoData]
     public async Task HappyPath_ReturnsExpectedState(
-        Client client,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId, 
+            clientSecret, 
+            redirectUri);
 
-        var response = await (await _client
-                .Request()
-                .AllowAnyHttpStatus()
-                .WithAutoRedirect(false)
-                .AppendPathSegment("authorize")
-                .AppendQueryParam("response_type", "code")
-                .AppendQueryParam("redirect_uri", client.RedirectUris[0])
-                .AppendQueryParam("state", state)
-                .AppendQueryParam("client_id", client.ClientId)
-                .GetAsync())
-            .GetJsonAsync<Response>();
+        var requestId = await _authenticator.GetRequestId(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .CreateApproveEndpoint()
-            .PostUrlEncodedAsync(GetApproveContent(response.Code));
+        var result = await _authenticator
+            .PerformAuthorizationCodeRequest(requestId);
 
         result
             .ResponseMessage
@@ -109,26 +110,24 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
 
     [Theory, AutoData]
     public async Task NonExistingReqId_BadRequest(
-        Client client,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
         string requestId,
         string state)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId, 
+            clientSecret, 
+            redirectUri);
 
-        await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .WithAutoRedirect(false)
-            .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", "code")
-            .AppendQueryParam("redirect_uri", client.RedirectUris[0])
-            .AppendQueryParam("state", state)
-            .AppendQueryParam("client_id", client.ClientId)
-            .GetAsync();
+        await _authenticator.GetRequestId(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .CreateApproveEndpoint()
-            .PostUrlEncodedAsync(GetApproveContent(requestId));
+        var result = await _authenticator
+            .PerformAuthorizationCodeRequest(requestId);
 
         result
             .StatusCode
@@ -138,25 +137,24 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
 
     [Theory, AutoData]
     public async Task NonExistingReqId_ExpectedMessage(
-        Client client,
-        string requestId)
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string requestId,
+        string state)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId, 
+            clientSecret, 
+            redirectUri);
 
-        await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .WithAutoRedirect(false)
-            .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", "code")
-            .AppendQueryParam("redirect_uri", client.RedirectUris[0])
-            .AppendQueryParam("state", "")
-            .AppendQueryParam("client_id", client.ClientId)
-            .GetAsync();
+        await _authenticator.GetRequestId(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .CreateApproveEndpoint()
-            .PostUrlEncodedAsync(GetApproveContent(requestId));
+        var result = await _authenticator
+            .PerformAuthorizationCodeRequest(requestId);
 
         var result2 = await result.GetJsonAsync<Error>();
 
@@ -168,27 +166,26 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
 
     [Theory, AutoData]
     public async Task NoRequiredId_BadRequest(
-        Client client)
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string state)
     {
-        _clientRepository.AddClient(client);
-        var response = await (await _client
-                .Request()
-                .AllowAnyHttpStatus()
-                .WithAutoRedirect(false)
-                .AppendPathSegment("authorize")
-                .AppendQueryParam("response_type", "code")
-                .AppendQueryParam("redirect_uri", client.RedirectUris[0])
-                .AppendQueryParam("state", "")
-                .AppendQueryParam("client_id", client.ClientId)
-                .GetAsync())
-            .GetJsonAsync<Response>();
+        _clientRepository.AddClient(
+            clientId, 
+            clientSecret, 
+            redirectUri);
 
-        var data = GetApproveContent(response.Code);
-        data.Remove("reqId");
+        await _authenticator.GetRequestId(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .CreateApproveEndpoint()
-            .PostUrlEncodedAsync(data);
+        var result = await _authenticator.PerformAuthorizationCodeRequest(
+            new Dictionary<string, string>
+            {
+                ["approve"] = "approve",
+            });
 
         result
             .StatusCode
@@ -197,30 +194,27 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
     }
 
     [Theory, AutoData]
-    public async Task NoRedirectsToSetupUri(
-        Client client,
+    public async Task Approve_Missing_RedirectToSetupUri(
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(client);
-        var response = await (await _client
-                .Request()
-                .AllowAnyHttpStatus()
-                .WithAutoRedirect(false)
-                .AppendPathSegment("authorize")
-                .AppendQueryParam("response_type", "code")
-                .AppendQueryParam("redirect_uri", client.RedirectUris[0])
-                .AppendQueryParam("state", state)
-                .AppendQueryParam("client_id", client.ClientId)
-                .GetAsync())
-            .GetJsonAsync<Response>();
+        _clientRepository.AddClient(
+            clientId, 
+            clientSecret, 
+            redirectUri);
+        
+        var requestId = await _authenticator.GetRequestId(
+            clientId,
+            redirectUri,
+            state);
 
-        var data = GetApproveContent(response.Code);
-        data.Remove("approve");
-
-        var result = await _client
-            .CreateApproveEndpoint()
-            .WithAutoRedirect(false)
-            .PostUrlEncodedAsync(data);
+        var result = await _authenticator.PerformAuthorizationCodeRequest(
+            new Dictionary<string, string>
+            {
+                ["reqId"] = requestId,
+            });
 
         result
             .ResponseMessage
@@ -230,33 +224,30 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
                 UriComponents.Host | UriComponents.Scheme | UriComponents.Path | UriComponents.Port,
                 UriFormat.Unescaped)
             .Should()
-            .BeEquivalentTo(client.RedirectUris[0].ToString());
+            .BeEquivalentTo(redirectUri.ToString());
     }
 
     [Theory, AutoData]
     public async Task ResponseTypeIsNotCode_ReturnsError(
-        Client client,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
         string responseType,
         string state)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId, 
+            clientSecret, 
+            redirectUri);
 
-        var response = await (await _client
-                .Request()
-                .AllowAnyHttpStatus()
-                .WithAutoRedirect(false)
-                .AppendPathSegment("authorize")
-                .AppendQueryParam("redirect_uri", client.RedirectUris[0])
-                .AppendQueryParam("state", state)
-                .AppendQueryParam("client_id", client.ClientId)
-                .AppendQueryParam("response_type", responseType)
-                .GetAsync())
-            .GetJsonAsync<Response>();
+        var requestId = await _authenticator.GetRequestId(
+            clientId,
+            redirectUri,
+            state,
+            responseType: responseType);
 
-        var result = await _client
-            .CreateApproveEndpoint()
-            .WithAutoRedirect(false)
-            .PostUrlEncodedAsync(GetApproveContent(response.Code));
+        var result = await _authenticator.PerformAuthorizationCodeRequest(
+            requestId);
 
         result
             .ResponseMessage
@@ -272,26 +263,23 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
 
     [Theory, AutoData]
     public async Task SendsBackStateDuringRegistration(
-        Client client,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(client);
-        var response = await (await _client
-                .Request()
-                .AllowAnyHttpStatus()
-                .WithAutoRedirect(false)
-                .AppendPathSegment("authorize")
-                .AppendQueryParam("response_type", "code")
-                .AppendQueryParam("redirect_uri", client.RedirectUris[0])
-                .AppendQueryParam("state", state)
-                .AppendQueryParam("client_id", client.ClientId)
-                .GetAsync())
-            .GetJsonAsync<Response>();
+        _clientRepository.AddClient(
+            clientId, 
+            clientSecret, 
+            redirectUri);
 
-        var result = await _client
-            .CreateApproveEndpoint()
-            .WithAutoRedirect(false)
-            .PostUrlEncodedAsync(GetApproveContent(response.Code));
+        var requestId = await _authenticator.GetRequestId(
+            clientId,
+            redirectUri,
+            state);
+
+        var result = await _authenticator.PerformAuthorizationCodeRequest(
+            requestId);
 
         result
             .ResponseMessage
@@ -307,28 +295,26 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
 
     [Theory, AutoData]
     public async Task NoRedirects(
-        Client client)
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string state)
     {
-        _clientRepository.AddClient(client);
-        var response = await (await _client
-                .Request()
-                .AllowAnyHttpStatus()
-                .WithAutoRedirect(false)
-                .AppendPathSegment("authorize")
-                .AppendQueryParam("response_type", "code")
-                .AppendQueryParam("redirect_uri", client.RedirectUris[0])
-                .AppendQueryParam("state", "")
-                .AppendQueryParam("client_id", client.ClientId)
-                .GetAsync())
-            .GetJsonAsync<Response>();
+        _clientRepository.AddClient(
+            clientId, 
+            clientSecret, 
+            redirectUri);
+        
+        var requestId = await _authenticator.GetRequestId(
+            clientId,
+            redirectUri,
+            state);
 
-        var data = GetApproveContent(response.Code);
-        data.Remove("approve");
-
-        var result = await _client
-            .CreateApproveEndpoint()
-            .WithAutoRedirect(false)
-            .PostUrlEncodedAsync(data);
+        var result = await _authenticator.PerformAuthorizationCodeRequest(
+            new Dictionary<string, string>
+            {
+                ["reqId"] = requestId,
+            });
 
         result
             .ResponseMessage
@@ -356,15 +342,5 @@ public sealed class ApproveTests(CustomAuthorizationServiceFactory authorization
             .StatusCode
             .Should()
             .Be(500);
-    }
-
-    private static Dictionary<string, string> GetApproveContent(
-        string requestId)
-    {
-        return new Dictionary<string, string>
-        {
-            ["reqId"] = requestId,
-            ["approve"] = "approve",
-        };
     }
 }
