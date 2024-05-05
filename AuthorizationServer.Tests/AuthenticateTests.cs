@@ -13,20 +13,26 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task HappyPath_ReturnsOk(
-        Client oauthClient,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string responseType,
         string state)
     {
-        _clientRepository.AddClient(oauthClient);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
         var result = await _client
             .Request()
             .AllowAnyHttpStatus()
             .WithAutoRedirect(false)
             .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", "code")
-            .AppendQueryParam("redirect_uri", oauthClient.RedirectUris[0])
+            .AppendQueryParam("response_type", responseType)
+            .AppendQueryParam("redirect_uri", redirectUri)
             .AppendQueryParam("state", state)
-            .AppendQueryParam("client_id", oauthClient.ClientId)
+            .AppendQueryParam("client_id", clientId)
             .GetAsync();
 
         result
@@ -37,20 +43,26 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task HappyPath_ReturnsRequestId(
-        Client oauthClient,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string responseType,
         string state)
     {
-        _clientRepository.AddClient(oauthClient);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
         var result = await _client
             .Request()
             .AllowAnyHttpStatus()
             .WithAutoRedirect(false)
             .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", "code")
-            .AppendQueryParam("redirect_uri", oauthClient.RedirectUris[0])
+            .AppendQueryParam("response_type", responseType)
+            .AppendQueryParam("redirect_uri", redirectUri)
             .AppendQueryParam("state", state)
-            .AppendQueryParam("client_id", oauthClient.ClientId)
+            .AppendQueryParam("client_id", clientId)
             .GetAsync();
 
         var code = await result.GetStringAsync();
@@ -62,18 +74,24 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task ClientId_Missing_ReturnsBadRequest(
-        Client oauthClient,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string responseType,
         string state)
     {
-        _clientRepository.AddClient(oauthClient);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
         var result = await _client
             .Request()
             .AllowAnyHttpStatus()
             .WithAutoRedirect(false)
             .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", "code")
-            .AppendQueryParam("redirect_uri", oauthClient.RedirectUris[0])
+            .AppendQueryParam("response_type", responseType)
+            .AppendQueryParam("redirect_uri", redirectUri)
             .AppendQueryParam("state", state)
             .GetAsync();
 
@@ -85,19 +103,25 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task ClientId_Invalid_ReturnsBadRequest(
-        Client oauthClient,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string responseType,
         string invalidClientId,
         string state)
     {
-        _clientRepository.AddClient(oauthClient);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
         var result = await _client
             .Request()
             .AllowAnyHttpStatus()
             .WithAutoRedirect(false)
             .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", "code")
-            .AppendQueryParam("redirect_uri", oauthClient.RedirectUris[0])
+            .AppendQueryParam("response_type", responseType)
+            .AppendQueryParam("redirect_uri", redirectUri)
             .AppendQueryParam("state", state)
             .AppendQueryParam("client_id", invalidClientId)
             .GetAsync();
@@ -110,19 +134,25 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task RedirectUri_Missing_ReturnsBadRequest(
-        Client oauthClient,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string responseType,
         string state)
     {
-        _clientRepository.AddClient(oauthClient);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
         var result = await _client
             .Request()
             .AllowAnyHttpStatus()
             .WithAutoRedirect(false)
             .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", "code")
+            .AppendQueryParam("response_type", responseType)
             .AppendQueryParam("state", state)
-            .AppendQueryParam("client_id", oauthClient.ClientId)
+            .AppendQueryParam("client_id", clientId)
             .GetAsync();
 
         result
@@ -133,20 +163,26 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task RedirectUri_InvalidRedirectUri_ReturnsBadRequest(
-        Client oauthClient,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
         string state,
+        string responseType,
         Uri invalidRedirectUri)
     {
-        _clientRepository.AddClient(oauthClient);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
         var result = await _client.Request()
             .AllowAnyHttpStatus()
             .WithAutoRedirect(false)
             .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", "code")
+            .AppendQueryParam("response_type", responseType)
             .AppendQueryParam("redirect_uri", invalidRedirectUri.ToString())
             .AppendQueryParam("state", state)
-            .AppendQueryParam("client_id", oauthClient.ClientId)
+            .AppendQueryParam("client_id", clientId)
             .GetAsync();
 
         result
@@ -157,19 +193,24 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task ResponseType_Missing_ReturnsBadRequest(
-        Client oauthClient,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(oauthClient);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
         var result = await _client
             .Request()
             .AllowAnyHttpStatus()
             .WithAutoRedirect(false)
             .AppendPathSegment("authorize")
-            .AppendQueryParam("redirect_uri", oauthClient.RedirectUris[0])
+            .AppendQueryParam("redirect_uri", redirectUri)
             .AppendQueryParam("state", state)
-            .AppendQueryParam("client_id", oauthClient.ClientId)
+            .AppendQueryParam("client_id", clientId)
             .GetAsync();
 
         result
@@ -180,18 +221,24 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task State_Missing_ReturnsOk(
-        Client oauthClient)
+        string responseType,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri)
     {
-        _clientRepository.AddClient(oauthClient);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
         var result = await _client
             .Request()
             .AllowAnyHttpStatus()
             .WithAutoRedirect(false)
             .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", "code")
-            .AppendQueryParam("redirect_uri", oauthClient.RedirectUris[0])
-            .AppendQueryParam("client_id", oauthClient.ClientId)
+            .AppendQueryParam("response_type", responseType)
+            .AppendQueryParam("redirect_uri", redirectUri)
+            .AppendQueryParam("client_id", clientId)
             .GetAsync();
 
         result
