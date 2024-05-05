@@ -25,11 +25,6 @@ app.MapGet("/authorize", (
         return Results.BadRequest();
     }
 
-    if (request.ResponseType != "code")
-    {
-        return Results.BadRequest();
-    }
-    
     var code = Guid
         .NewGuid()
         .ToString();

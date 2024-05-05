@@ -346,7 +346,8 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
         result.StatusCode.Should().Be(401);
     }
 
-    private async Task<string> GetAuthorizationCode(Client oauthClient)
+    private async Task<string> GetAuthorizationCode(
+        Client oauthClient)
     {
         var response = await _client
             .Request()

@@ -156,31 +156,6 @@ public sealed class AuthenticateTests(
     }
 
     [Theory, AutoData]
-    public async Task ResponseType_Invalid_ReturnsBadRequest(
-        Client oauthClient,
-        string responseType,
-        string state)
-    {
-        _clientRepository.AddClient(oauthClient);
-
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .WithAutoRedirect(false)
-            .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", responseType)
-            .AppendQueryParam("redirect_uri", oauthClient.RedirectUris[0])
-            .AppendQueryParam("state", state)
-            .AppendQueryParam("client_id", oauthClient.ClientId)
-            .GetAsync();
-
-        result
-            .StatusCode
-            .Should()
-            .Be(400);
-    }
-
-    [Theory, AutoData]
     public async Task ResponseType_Missing_ReturnsBadRequest(
         Client oauthClient,
         string state)
