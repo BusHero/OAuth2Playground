@@ -38,7 +38,7 @@ public sealed class ApproveTests
             redirectUri,
             state);
 
-        var result = await _authenticator.PerformAuthorizationCodeRequest(
+        var result = await _authenticator.PerformApproveRequest(
             requestId);
 
         result
@@ -64,7 +64,7 @@ public sealed class ApproveTests
             redirectUri,
             state);
 
-        var result = await _authenticator.PerformAuthorizationCodeRequest(
+        var result = await _authenticator.PerformApproveRequest(
             requestId);
 
         result
@@ -94,7 +94,7 @@ public sealed class ApproveTests
             state);
 
         var result = await _authenticator
-            .PerformAuthorizationCodeRequest(requestId);
+            .PerformApproveRequest(requestId);
 
         result
             .ResponseMessage
@@ -127,7 +127,7 @@ public sealed class ApproveTests
             state);
 
         var result = await _authenticator
-            .PerformAuthorizationCodeRequest(requestId);
+            .PerformApproveRequest(requestId);
 
         result
             .StatusCode
@@ -154,7 +154,7 @@ public sealed class ApproveTests
             state);
 
         var result = await _authenticator
-            .PerformAuthorizationCodeRequest(requestId);
+            .PerformApproveRequest(requestId);
 
         var result2 = await result.GetJsonAsync<Error>();
 
@@ -181,7 +181,7 @@ public sealed class ApproveTests
             redirectUri,
             state);
 
-        var result = await _authenticator.PerformAuthorizationCodeRequest(
+        var result = await _authenticator.PerformApproveRequest(
             new Dictionary<string, string>
             {
                 ["approve"] = "approve",
@@ -210,7 +210,7 @@ public sealed class ApproveTests
             redirectUri,
             state);
 
-        var result = await _authenticator.PerformAuthorizationCodeRequest(
+        var result = await _authenticator.PerformApproveRequest(
             new Dictionary<string, string>
             {
                 ["reqId"] = requestId,
@@ -246,7 +246,7 @@ public sealed class ApproveTests
             state,
             responseType: responseType);
 
-        var result = await _authenticator.PerformAuthorizationCodeRequest(
+        var result = await _authenticator.PerformApproveRequest(
             requestId);
 
         result
@@ -278,7 +278,7 @@ public sealed class ApproveTests
             redirectUri,
             state);
 
-        var result = await _authenticator.PerformAuthorizationCodeRequest(
+        var result = await _authenticator.PerformApproveRequest(
             new Dictionary<string, string>
             {
                 ["reqId"] = requestId,

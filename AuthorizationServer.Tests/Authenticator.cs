@@ -35,15 +35,11 @@ internal sealed class Authenticator(
         string state,
         string responseType = "code")
     {
-        var response = await _authClient
-            .Request()
-            .WithAutoRedirect(false)
-            .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", responseType)
-            .AppendQueryParam("redirect_uri", redirectUri.ToString())
-            .AppendQueryParam("state", state)
-            .AppendQueryParam("client_id", clientId)
-            .GetAsync();
+        var response = await PerformAuthorizationRequest(
+            clientId,
+            redirectUri,
+            state,
+            responseType);
 
         var responseObject = await response
             .GetJsonAsync<Response>();
@@ -51,11 +47,53 @@ internal sealed class Authenticator(
         return responseObject.Code;
     }
 
-    public async Task<IFlurlResponse> PerformAuthorizationCodeRequest(
+    public async Task<IFlurlResponse> PerformAuthorizationRequest(
+        string? clientId = null,
+        Uri? redirectUri = null,
+        string? state = null,
+        string? responseType = "code")
+    {
+        var request = _authClient
+            .Request()
+            .AllowAnyHttpStatus()
+            .WithAutoRedirect(false)
+            .AppendPathSegment("authorize");
+
+        if (clientId is not null)
+        {
+            request = request
+                .AppendQueryParam("client_id", clientId);
+        }
+
+        if (redirectUri is not null)
+        {
+            request = request
+                .AppendQueryParam("redirect_uri", redirectUri.ToString());
+        }
+
+        if (responseType is not null)
+        {
+            request = request
+                .AppendQueryParam("response_type", responseType);
+        }
+
+        if (state is not null)
+        {
+            request = request
+                .AppendQueryParam("state", state);
+        }
+
+        var response = await request
+            .GetAsync();
+
+        return response;
+    }
+
+    public async Task<IFlurlResponse> PerformApproveRequest(
         string requestId,
         string approve = "approve")
     {
-        var result = await PerformAuthorizationCodeRequest(new Dictionary<string, string>
+        var result = await PerformApproveRequest(new Dictionary<string, string>
         {
             ["reqId"] = requestId,
             ["approve"] = "approve",
@@ -64,7 +102,7 @@ internal sealed class Authenticator(
         return result;
     }
 
-    public async Task<IFlurlResponse> PerformAuthorizationCodeRequest(
+    public async Task<IFlurlResponse> PerformApproveRequest(
         IReadOnlyDictionary<string, string> data)
     {
         var result = await _authClient
@@ -80,7 +118,7 @@ internal sealed class Authenticator(
     public async Task<string> GetAuthorizationCode(
         string requestId)
     {
-        var result = await PerformAuthorizationCodeRequest(
+        var result = await PerformApproveRequest(
             requestId);
 
         var query = result

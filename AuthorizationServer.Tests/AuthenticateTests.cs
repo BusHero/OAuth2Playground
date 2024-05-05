@@ -1,12 +1,11 @@
-using Flurl.Http;
-
 namespace AuthorizationServer.Tests;
 
 public sealed class AuthenticateTests(
     CustomAuthorizationServiceFactory authorizationServiceFactory) : IClassFixture<CustomAuthorizationServiceFactory>
 {
-    private readonly FlurlClient _client
-        = new(authorizationServiceFactory.CreateDefaultClient());
+    private readonly Authenticator _authenticator = new(
+        authorizationServiceFactory.CreateDefaultClient(),
+        authorizationServiceFactory.ClientRepository);
 
     private readonly InMemoryClientRepository _clientRepository
         = authorizationServiceFactory.ClientRepository;
@@ -24,16 +23,11 @@ public sealed class AuthenticateTests(
             clientSecret,
             redirectUri);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .WithAutoRedirect(false)
-            .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", responseType)
-            .AppendQueryParam("redirect_uri", redirectUri)
-            .AppendQueryParam("state", state)
-            .AppendQueryParam("client_id", clientId)
-            .GetAsync();
+        var result = await _authenticator.PerformAuthorizationRequest(
+            clientId: clientId,
+            redirectUri: redirectUri,
+            state: state,
+            responseType: responseType);
 
         result
             .StatusCode
@@ -54,16 +48,11 @@ public sealed class AuthenticateTests(
             clientSecret,
             redirectUri);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .WithAutoRedirect(false)
-            .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", responseType)
-            .AppendQueryParam("redirect_uri", redirectUri)
-            .AppendQueryParam("state", state)
-            .AppendQueryParam("client_id", clientId)
-            .GetAsync();
+        var result = await _authenticator.PerformAuthorizationRequest(
+            clientId: clientId,
+            redirectUri: redirectUri,
+            state: state,
+            responseType: responseType);
 
         var code = await result.GetStringAsync();
 
@@ -85,15 +74,10 @@ public sealed class AuthenticateTests(
             clientSecret,
             redirectUri);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .WithAutoRedirect(false)
-            .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", responseType)
-            .AppendQueryParam("redirect_uri", redirectUri)
-            .AppendQueryParam("state", state)
-            .GetAsync();
+        var result = await _authenticator.PerformAuthorizationRequest(
+            redirectUri: redirectUri,
+            state: state,
+            responseType: responseType);
 
         result
             .StatusCode
@@ -115,16 +99,11 @@ public sealed class AuthenticateTests(
             clientSecret,
             redirectUri);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .WithAutoRedirect(false)
-            .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", responseType)
-            .AppendQueryParam("redirect_uri", redirectUri)
-            .AppendQueryParam("state", state)
-            .AppendQueryParam("client_id", invalidClientId)
-            .GetAsync();
+        var result = await _authenticator.PerformAuthorizationRequest(
+            clientId: invalidClientId,
+            redirectUri: redirectUri,
+            state: state,
+            responseType: responseType);
 
         result
             .StatusCode
@@ -145,15 +124,10 @@ public sealed class AuthenticateTests(
             clientSecret,
             redirectUri);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .WithAutoRedirect(false)
-            .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", responseType)
-            .AppendQueryParam("state", state)
-            .AppendQueryParam("client_id", clientId)
-            .GetAsync();
+        var result = await _authenticator.PerformAuthorizationRequest(
+            clientId: clientId,
+            state: state,
+            responseType: responseType);
 
         result
             .StatusCode
@@ -175,15 +149,11 @@ public sealed class AuthenticateTests(
             clientSecret,
             redirectUri);
 
-        var result = await _client.Request()
-            .AllowAnyHttpStatus()
-            .WithAutoRedirect(false)
-            .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", responseType)
-            .AppendQueryParam("redirect_uri", invalidRedirectUri.ToString())
-            .AppendQueryParam("state", state)
-            .AppendQueryParam("client_id", clientId)
-            .GetAsync();
+        var result = await _authenticator.PerformAuthorizationRequest(
+            clientId: clientId,
+            redirectUri: invalidRedirectUri,
+            state: state,
+            responseType: responseType);
 
         result
             .StatusCode
@@ -203,15 +173,11 @@ public sealed class AuthenticateTests(
             clientSecret,
             redirectUri);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .WithAutoRedirect(false)
-            .AppendPathSegment("authorize")
-            .AppendQueryParam("redirect_uri", redirectUri)
-            .AppendQueryParam("state", state)
-            .AppendQueryParam("client_id", clientId)
-            .GetAsync();
+        var result = await _authenticator.PerformAuthorizationRequest(
+            clientId: clientId,
+            redirectUri: redirectUri,
+            state: state,
+            responseType: null);
 
         result
             .StatusCode
@@ -231,15 +197,10 @@ public sealed class AuthenticateTests(
             clientSecret,
             redirectUri);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .WithAutoRedirect(false)
-            .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", responseType)
-            .AppendQueryParam("redirect_uri", redirectUri)
-            .AppendQueryParam("client_id", clientId)
-            .GetAsync();
+        var result = await _authenticator.PerformAuthorizationRequest(
+            clientId: clientId,
+            redirectUri: redirectUri,
+            responseType: responseType);
 
         result
             .StatusCode
