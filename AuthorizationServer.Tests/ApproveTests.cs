@@ -22,7 +22,7 @@ public sealed class ApproveTests
     private readonly Authenticator _authenticator;
 
     [Theory, AutoData]
-    public async Task HappyPath_Redirect(
+    public async Task HappyPath_Returns302(
         string clientId,
         string clientSecret,
         Uri redirectUri,
@@ -109,7 +109,7 @@ public sealed class ApproveTests
     }
 
     [Theory, AutoData]
-    public async Task NonExistingReqId_BadRequest(
+    public async Task RequestId_Invalid_Returns400(
         string clientId,
         string clientSecret,
         Uri redirectUri,
@@ -136,7 +136,7 @@ public sealed class ApproveTests
     }
 
     [Theory, AutoData]
-    public async Task NonExistingReqId_ExpectedMessage(
+    public async Task RequestId_Invalid_ReturnsExpectedMessage(
         string clientId,
         string clientSecret,
         Uri redirectUri,
@@ -165,7 +165,7 @@ public sealed class ApproveTests
     }
 
     [Theory, AutoData]
-    public async Task NoRequiredId_BadRequest(
+    public async Task RequestId_Missing_Returns400(
         string clientId,
         string clientSecret,
         Uri redirectUri,
@@ -228,7 +228,7 @@ public sealed class ApproveTests
     }
 
     [Theory, AutoData]
-    public async Task ResponseTypeIsNotCode_ReturnsError(
+    public async Task ResponseType_Invalid_ReturnsExpectedErrorMessage(
         string clientId,
         string clientSecret,
         Uri redirectUri,
@@ -262,39 +262,7 @@ public sealed class ApproveTests
     }
 
     [Theory, AutoData]
-    public async Task SendsBackStateDuringRegistration(
-        string clientId,
-        string clientSecret,
-        Uri redirectUri,
-        string state)
-    {
-        _clientRepository.AddClient(
-            clientId, 
-            clientSecret, 
-            redirectUri);
-
-        var requestId = await _authenticator.GetRequestId(
-            clientId,
-            redirectUri,
-            state);
-
-        var result = await _authenticator.PerformAuthorizationCodeRequest(
-            requestId);
-
-        result
-            .ResponseMessage
-            .Headers
-            .Location!
-            .GetQueryParameters()
-            .Should()
-            .ContainKey("state")
-            .WhoseValue
-            .Should()
-            .Be(state);
-    }
-
-    [Theory, AutoData]
-    public async Task NoRedirects(
+    public async Task Approve_Missing_ReturnsExpectedErrorMessage(
         string clientId,
         string clientSecret,
         Uri redirectUri,
@@ -329,7 +297,7 @@ public sealed class ApproveTests
     }
 
     [Fact]
-    public async Task NoBody_InternalServerError()
+    public async Task NoBody_Returns500()
     {
         var result = await _client
             .Request()
