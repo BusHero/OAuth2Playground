@@ -6,7 +6,7 @@ using WebApplication2;
 
 namespace WebResourceTests;
 
-public class UnitTest1(WebApplicationFactory<Program> factory)
+public sealed class UnitTest1(WebApplicationFactory<Program> factory)
     : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client = factory.CreateDefaultClient();

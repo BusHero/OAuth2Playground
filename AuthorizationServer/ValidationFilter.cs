@@ -1,5 +1,7 @@
 ﻿using FluentValidation;
 
+namespace AuthorizationServer;
+
 internal sealed class ValidationFilter<T> : IEndpointFilter where T : class
 {
     public async ValueTask<object?> InvokeAsync(
@@ -22,13 +24,11 @@ internal sealed class ValidationFilter<T> : IEndpointFilter where T : class
 
                 return Results.ValidationProblem(validation.ToDictionary());
             }
-            else
+
+            return Results.ValidationProblem(new Dictionary<string, string[]>
             {
-                return Results.ValidationProblem(new Dictionary<string, string[]>
-                {
-                    ["reqId"] = ["requestId is mandatory",],
-                });
-            }
+                ["reqId"] = ["requestId is mandatory",],
+            });
         }
 
         return await next(ctx);

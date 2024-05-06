@@ -1,4 +1,6 @@
-﻿public interface IClientRepository
+﻿namespace AuthorizationServer;
+
+public interface IClientRepository
 {
     Client? FindClientById(string clientId);
 }

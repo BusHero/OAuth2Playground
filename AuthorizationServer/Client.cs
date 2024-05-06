@@ -1,4 +1,6 @@
-﻿public sealed class Client
+﻿namespace AuthorizationServer;
+
+public sealed class Client
 {
     public required string ClientId { get; init; }
 

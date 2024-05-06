@@ -7,7 +7,7 @@ using JWT.Serializers;
 
 namespace WebResourceTests;
 
-public class JwtTokenTests
+public sealed class JwtTokenTests
 {
     [Fact]
     public void Test()
