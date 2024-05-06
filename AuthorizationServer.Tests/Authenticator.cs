@@ -1,4 +1,5 @@
-﻿using Flurl.Http;
+﻿using System.Net.Http.Headers;
+using Flurl.Http;
 
 namespace AuthorizationServer.Tests;
 
@@ -116,6 +117,28 @@ internal sealed class Authenticator(
     }
 
     public async Task<string> GetAuthorizationCode(
+        string clientId,
+        Uri redirectUri,
+        string state)
+    {
+        var requestId = await GetRequestId(
+            clientId,
+            redirectUri,
+            state);
+
+        var result = await PerformApproveRequest(
+            requestId);
+
+        var query = result
+            .ResponseMessage
+            .Headers
+            .Location!
+            .GetQueryParameters();
+
+        return query["code"];
+    }
+
+    public async Task<string> GetAuthorizationCode(
         string requestId)
     {
         var result = await PerformApproveRequest(
@@ -135,19 +158,78 @@ internal sealed class Authenticator(
         string clientSecret,
         string authorizationCode)
     {
-        var response = await _authClient
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .WithBasicAuth(clientId, clientSecret)
-            .PostUrlEncodedAsync(new Dictionary<string, string>
-            {
-                ["grant_type"] = "authorization_code",
-                ["code"] = authorizationCode,
-            });
+        var response = await PerformTokenRequest(
+            clientId,
+            clientSecret,
+            authorizationCode);
 
         var json = await response.GetJsonAsync<Dictionary<string, string>>();
 
         return json["access_token"];
     }
+
+    public async Task<IFlurlResponse> PerformTokenRequest(
+        string clientId,
+        string clientSecret,
+        string authorizationCode) =>
+        await PerformTokenRequest(
+            clientId,
+            clientSecret,
+            "authorization_code",
+            authorizationCode);
+
+    public async Task<IFlurlResponse> PerformTokenRequest(
+        string clientId,
+        string clientSecret,
+        string grantType,
+        string authorizationCode) =>
+        await PerformTokenRequest(
+            clientId,
+            clientSecret,
+            new Dictionary<string, string>
+            {
+                ["grant_type"] = grantType,
+                ["code"] = authorizationCode,
+            });
+
+    public async Task<IFlurlResponse> PerformTokenRequest(
+        string clientId,
+        string clientSecret,
+        IReadOnlyDictionary<string, string> data) =>
+        await _authClient
+            .Request()
+            .AllowAnyHttpStatus()
+            .AppendPathSegment("token")
+            .WithBasicAuth(clientId, clientSecret)
+            .PostUrlEncodedAsync(data);
+
+    public async Task<IFlurlResponse> PerformTokenRequest(
+        string authorizationCode) =>
+        await PerformTokenRequest(new Dictionary<string, string>
+        {
+            ["grant_type"] = "authorization_code",
+            ["code"] = authorizationCode,
+        });
+
+    public async Task<IFlurlResponse> PerformTokenRequest(
+        Dictionary<string, string> data) =>
+        await _authClient
+            .Request()
+            .AllowAnyHttpStatus()
+            .AppendPathSegment("token")
+            .PostUrlEncodedAsync(data);
+
+    public async Task<IFlurlResponse> PerformTokenRequest(
+        AuthenticationHeaderValue authenticationHeaderValue,
+        string code) =>
+        await _authClient
+            .Request()
+            .AllowAnyHttpStatus()
+            .AppendPathSegment("token")
+            .WithAuthorization(authenticationHeaderValue)
+            .PostUrlEncodedAsync(new Dictionary<string, string>
+            {
+                ["grant_type"] = "authorization_code",
+                ["code"] = code,
+            });
 }

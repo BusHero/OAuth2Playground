@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Net.Http.Headers;
 using FluentAssertions.Execution;
-using Flurl.Http;
 
 namespace AuthorizationServer.Tests;
 
@@ -8,52 +8,62 @@ namespace AuthorizationServer.Tests;
 public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationServiceFactory)
     : IClassFixture<CustomAuthorizationServiceFactory>
 {
-    private readonly FlurlClient _client
-        = new(authorizationServiceFactory.CreateDefaultClient());
+    private readonly Authenticator _authenticator = new(
+        authorizationServiceFactory.CreateDefaultClient(),
+        authorizationServiceFactory.ClientRepository);
 
     private readonly InMemoryClientRepository _clientRepository
         = authorizationServiceFactory.ClientRepository;
 
     [Theory, AutoData]
     public async Task HappyPath_Returns200(
-        Client client)
+        string clientId,
+        string clientSecret,
+        string state,
+        Uri redirectUri)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
-        var code = await GetAuthorizationCode(client);
+        var code = await _authenticator.GetAuthorizationCode(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .WithBasicAuth(client.ClientId, client.ClientSecret)
-            .PostUrlEncodedAsync(new Dictionary<string, string>
-            {
-                ["grant_type"] = "authorization_code",
-                ["code"] = code,
-            });
+        var result = await _authenticator.PerformTokenRequest(
+            clientId,
+            clientSecret,
+            code);
 
-        result.StatusCode.Should().Be(200);
+        result
+            .StatusCode
+            .Should()
+            .Be(200);
     }
 
     [Theory, AutoData]
     public async Task HappyPath_ReturnsToken(
-        Client client)
+        string clientId,
+        string clientSecret,
+        string state,
+        Uri redirectUri)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
-        var code = await GetAuthorizationCode(client);
+        var code = await _authenticator.GetAuthorizationCode(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .WithBasicAuth(client.ClientId, client.ClientSecret)
-            .PostUrlEncodedAsync(new Dictionary<string, string>
-            {
-                ["grant_type"] = "authorization_code",
-                ["code"] = code,
-            });
+        var result = await _authenticator.PerformTokenRequest(
+            clientId,
+            clientSecret,
+            code);
 
         var json = await result.GetJsonAsync<Dictionary<string, string>>();
 
@@ -75,309 +85,366 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
 
     [Theory, AutoData]
     public async Task CodeForWrongClient_Returns400(
-        Client rightClient,
-        Client wrongClient)
+        string rightClientId,
+        string rightClientSecret,
+        Uri rightRedirectUri,
+        string wrongClientId,
+        string wrongClientSecret,
+        Uri wrongRedirectUri,
+        string state)
     {
-        _clientRepository.AddClient(wrongClient);
-        _clientRepository.AddClient(rightClient);
+        _clientRepository.AddClient(rightClientId, rightClientSecret, rightRedirectUri);
+        _clientRepository.AddClient(wrongClientId, wrongClientSecret, wrongRedirectUri);
 
-        var code = await GetAuthorizationCode(rightClient);
+        var code = await _authenticator.GetAuthorizationCode(
+            rightClientId,
+            rightRedirectUri,
+            state);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .WithBasicAuth(wrongClient.ClientId, wrongClient.ClientSecret)
-            .PostUrlEncodedAsync(new Dictionary<string, string>
-            {
-                ["grant_type"] = "authorization_code",
-                ["code"] = code,
-            });
+        var result = await _authenticator.PerformTokenRequest(
+            wrongClientId,
+            wrongClientSecret,
+            code);
 
-        result.StatusCode.Should().Be(400);
+        result
+            .StatusCode
+            .Should()
+            .Be(400);
     }
 
     [Theory, AutoData]
     public async Task InvalidCode_Returns400(
-        Client client,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string state,
         string invalidCode)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
-        var code = await GetAuthorizationCode(client);
+        await _authenticator.GetAuthorizationCode(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .WithBasicAuth(client.ClientId, client.ClientSecret)
-            .PostUrlEncodedAsync(new Dictionary<string, string>
-            {
-                ["grant_type"] = "authorization_code",
-                ["code"] = invalidCode,
-            });
+        var result = await _authenticator.PerformTokenRequest(
+            clientId,
+            clientSecret,
+            invalidCode);
 
-        result.StatusCode.Should().Be(400);
+        result
+            .StatusCode
+            .Should()
+            .Be(400);
     }
 
     [Theory, AutoData]
     public async Task MissingCode_Returns400(
-        Client client)
+        string clientId,
+        string clientSecret,
+        Uri redirectUri)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .WithBasicAuth(client.ClientId, client.ClientSecret)
-            .PostUrlEncodedAsync(new Dictionary<string, string>
+        var result = await _authenticator.PerformTokenRequest(
+            clientId,
+            clientSecret,
+            new Dictionary<string, string>
             {
                 ["grant_type"] = "authorization_code",
             });
 
-        result.StatusCode.Should().Be(400);
+        result
+            .StatusCode
+            .Should()
+            .Be(400);
     }
 
     [Theory, AutoData]
     public async Task MissingGrantType_Returns400(
-        Client client)
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string state)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
-        var code = await GetAuthorizationCode(client);
+        var code = await _authenticator.GetAuthorizationCode(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .WithBasicAuth(client.ClientId, client.ClientSecret)
-            .PostUrlEncodedAsync(new Dictionary<string, string>
+        var result = await _authenticator.PerformTokenRequest(
+            clientId,
+            clientSecret,
+            new Dictionary<string, string>
             {
-                ["grant_type1"] = "authorization_code",
                 ["code"] = code,
             });
 
-        result.StatusCode.Should().Be(400);
+        result
+            .StatusCode
+            .Should()
+            .Be(400);
     }
 
     [Theory, AutoData]
     public async Task GrantTypeIsNotAuthorizationCode_Returns400(
-        Client client,
-        string authorizationCode)
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string grantType,
+        string state)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
-        var code = await GetAuthorizationCode(client);
+        var code = await _authenticator.GetAuthorizationCode(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .WithBasicAuth(client.ClientId, client.ClientSecret)
-            .PostUrlEncodedAsync(new Dictionary<string, string>
-            {
-                ["grant_type"] = authorizationCode,
-                ["code"] = code,
-            });
+        var result = await _authenticator.PerformTokenRequest(
+            clientId,
+            clientSecret,
+            grantType,
+            code);
 
-        result.StatusCode.Should().Be(400);
+        result
+            .StatusCode
+            .Should()
+            .Be(400);
     }
 
     [Theory, AutoData]
-    public async Task NonRegistered_Returns401(
-        Client unregisteredClient,
-        Client registeredClient)
+    public async Task WrongClientId_Returns401(
+        string clientId,
+        string clientSecret,
+        string wrongClientId,
+        Uri redirectUri,
+        string state)
     {
-        _clientRepository.AddClient(registeredClient);
-        var code = await GetAuthorizationCode(registeredClient);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .WithBasicAuth(unregisteredClient.ClientId, unregisteredClient.ClientSecret)
-            .PostUrlEncodedAsync(new Dictionary<string, string>
-            {
-                ["grant_type"] = "authorization_code",
-                ["code"] = code,
-            });
+        var code = await _authenticator.GetAuthorizationCode(
+            clientId,
+            redirectUri,
+            state);
 
-        result.StatusCode.Should().Be(401);
+        var result = await _authenticator.PerformTokenRequest(
+            wrongClientId,
+            clientSecret,
+            code);
+
+        result
+            .StatusCode
+            .Should()
+            .Be(401);
     }
 
     [Theory, AutoData]
     public async Task WrongSecret_Returns401(
-        Client client,
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string state,
         string wrongSecret)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
-        var code = await GetAuthorizationCode(client);
+        var code = await _authenticator.GetAuthorizationCode(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .WithBasicAuth(client.ClientId, wrongSecret)
-            .PostUrlEncodedAsync(new Dictionary<string, string>
-            {
-                ["grant_type"] = "authorization_code",
-                ["code"] = code,
-            });
+        var result = await _authenticator.PerformTokenRequest(
+            clientId,
+            wrongSecret,
+            code);
 
-        result.StatusCode.Should().Be(401);
+        result
+            .StatusCode
+            .Should()
+            .Be(401);
     }
 
     [Theory, AutoData]
     public async Task NoCredentials_Return401(
-        Client client)
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string state)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
-        var code = await GetAuthorizationCode(client);
+        var code = await _authenticator.GetAuthorizationCode(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .PostUrlEncodedAsync(new Dictionary<string, string>
-            {
-                ["grant_type"] = "authorization_code",
-                ["code"] = code,
-            });
+        var result = await _authenticator.PerformTokenRequest(
+            code);
 
-        result.StatusCode.Should().Be(401);
+        result
+            .StatusCode
+            .Should()
+            .Be(401);
     }
 
     [Theory, AutoData]
     public async Task CredentialsInBody_Returns200(
-        Client client)
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string state)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
-        var code = await GetAuthorizationCode(client);
+        var code = await _authenticator.GetAuthorizationCode(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .PostUrlEncodedAsync(new Dictionary<string, string>
+        var result = await _authenticator.PerformTokenRequest(
+            new Dictionary<string, string>
             {
-                ["client"] = client.ClientId,
-                ["secret"] = client.ClientSecret,
+                ["client"] = clientId,
+                ["secret"] = clientSecret,
                 ["grant_type"] = "authorization_code",
                 ["code"] = code,
             });
 
-        result.StatusCode.Should().Be(200);
+        result
+            .StatusCode
+            .Should()
+            .Be(200);
     }
 
     [Theory, AutoData]
     public async Task SameCredentialsInHeaderAndBody_Returns401(
-        Client client)
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string state)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
-        var code = await GetAuthorizationCode(client);
+        var code = await _authenticator.GetAuthorizationCode(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .WithBasicAuth(client.ClientId, client.ClientSecret)
-            .PostUrlEncodedAsync(new Dictionary<string, string>
+        var result = await _authenticator.PerformTokenRequest(
+            clientId,
+            clientSecret,
+            new Dictionary<string, string>
             {
-                ["client"] = client.ClientId,
-                ["secret"] = client.ClientSecret,
+                ["client"] = clientId,
+                ["secret"] = clientSecret,
                 ["grant_type"] = "authorization_code",
                 ["code"] = code,
             });
 
-        result.StatusCode.Should().Be(401);
+        result
+            .StatusCode
+            .Should()
+            .Be(401);
     }
 
     [Theory, AutoData]
     public async Task WrongAuthenticationScheme_Returns400(
-        Client client,
-        string token)
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string scheme,
+        string parameter,
+        string state)
     {
-        _clientRepository.AddClient(client);
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
 
-        var code = await GetAuthorizationCode(client);
+        var code = await _authenticator.GetAuthorizationCode(
+            clientId,
+            redirectUri,
+            state);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .WithOAuthBearerToken(token)
-            .PostUrlEncodedAsync(new Dictionary<string, string>
-            {
-                ["grant_type"] = "authorization_code",
-                ["code"] = code,
-            });
+        var result = await _authenticator.PerformTokenRequest(
+            new AuthenticationHeaderValue(scheme, parameter),
+            code);
 
-        result.StatusCode.Should().Be(400);
+        result
+            .StatusCode
+            .Should()
+            .Be(400);
     }
 
     [Theory, AutoData]
     public async Task DifferentCredentialsInHeaderAndBody_Returns401(
-        Client client1,
-        Client client2)
+        string clientId1,
+        string clientSecret1,
+        Uri redirectUri1,
+        string clientId2,
+        string clientSecret2,
+        Uri redirectUri2,
+        string state)
     {
-        _clientRepository.AddClient(client1);
-        _clientRepository.AddClient(client2);
+        _clientRepository.AddClient(
+            clientId1,
+            clientSecret1,
+            redirectUri1);
 
-        var code = await GetAuthorizationCode(client1);
+        _clientRepository.AddClient(
+            clientId2,
+            clientSecret2,
+            redirectUri2);
 
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .AppendPathSegment("token")
-            .WithBasicAuth(client1.ClientId, client1.ClientSecret)
-            .PostUrlEncodedAsync(new Dictionary<string, string>
+        var code = await _authenticator.GetAuthorizationCode(
+            clientId1,
+            redirectUri1,
+            state);
+
+        var result = await _authenticator.PerformTokenRequest(
+            clientId1,
+            clientSecret1,
+            new Dictionary<string, string>()
             {
-                ["client"] = client2.ClientId,
-                ["secret"] = client2.ClientSecret,
+                ["client"] = clientId2,
+                ["secret"] = clientSecret2,
                 ["grant_type"] = "authorization_code",
                 ["code"] = code,
             });
 
-        result.StatusCode.Should().Be(401);
-    }
-
-    private async Task<string> GetAuthorizationCode(
-        Client oauthClient)
-    {
-        var response = await _client
-            .Request()
-            .WithAutoRedirect(false)
-            .AppendPathSegment("authorize")
-            .AppendQueryParam("response_type", "code")
-            .AppendQueryParam("redirect_uri", oauthClient.RedirectUris[0])
-            .AppendQueryParam("state", Guid.NewGuid().ToString())
-            .AppendQueryParam("client_id", oauthClient.ClientId)
-            .GetAsync();
-
-        var responseObject = await response.GetJsonAsync<Response>();
-
-        var result = await _client
-            .Request()
-            .AllowAnyHttpStatus()
-            .WithAutoRedirect(false)
-            .AppendPathSegment("approve")
-            .PostUrlEncodedAsync(new Dictionary<string, string>
-            {
-                ["reqId"] = responseObject.Code,
-                ["approve"] = "approve",
-            });
-
-        var query = result
-            .ResponseMessage
-            .Headers
-            .Location!
-            .GetQueryParameters();
-
-        return query["code"];
+        result
+            .StatusCode
+            .Should()
+            .Be(401);
     }
 }
