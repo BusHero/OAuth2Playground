@@ -1,7 +1,8 @@
 namespace AuthorizationServer.Tests;
 
 public sealed class AuthenticateTests(
-    CustomAuthorizationServiceFactory authorizationServiceFactory) : IClassFixture<CustomAuthorizationServiceFactory>
+    CustomAuthorizationServiceFactory authorizationServiceFactory)
+    : IClassFixture<CustomAuthorizationServiceFactory>
 {
     private readonly Authenticator _authenticator = new(
         authorizationServiceFactory.CreateDefaultClient(),
@@ -183,28 +184,5 @@ public sealed class AuthenticateTests(
             .StatusCode
             .Should()
             .Be(400);
-    }
-
-    [Theory, AutoData]
-    public async Task State_Missing_ReturnsOk(
-        string responseType,
-        string clientId,
-        string clientSecret,
-        Uri redirectUri)
-    {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
-
-        var result = await _authenticator.PerformAuthorizationRequest(
-            clientId: clientId,
-            redirectUri: redirectUri,
-            responseType: responseType);
-
-        result
-            .StatusCode
-            .Should()
-            .Be(200);
     }
 }

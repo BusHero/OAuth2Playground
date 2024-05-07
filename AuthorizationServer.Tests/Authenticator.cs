@@ -37,10 +37,10 @@ internal sealed class Authenticator(
         string responseType = "code")
     {
         var response = await PerformAuthorizationRequest(
-            clientId,
-            redirectUri,
-            state,
-            responseType);
+            clientId: clientId,
+            redirectUri: redirectUri,
+            state: state,
+            responseType: responseType);
 
         var responseObject = await response
             .GetJsonAsync<Response>();
