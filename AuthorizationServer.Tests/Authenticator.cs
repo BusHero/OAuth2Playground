@@ -48,11 +48,12 @@ internal sealed class Authenticator(
         return responseObject.Code;
     }
 
-    public async Task<IFlurlResponse> PerformAuthorizationRequest(
-        string? clientId = null,
+    public async Task<IFlurlResponse> PerformAuthorizationRequest(string? clientId = null,
         Uri? redirectUri = null,
         string? state = null,
-        string? responseType = "code")
+        string? scope = null,
+        string? responseType = "code"
+    )
     {
         var request = _authClient
             .Request()
@@ -82,6 +83,11 @@ internal sealed class Authenticator(
         {
             request = request
                 .AppendQueryParam("state", state);
+        }
+
+        if (scope != null)
+        {
+            request = request.AppendQueryParam("scope", scope);
         }
 
         var response = await request

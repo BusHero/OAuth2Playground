@@ -17,17 +17,20 @@ public sealed class AuthenticateTests(
         string clientSecret,
         Uri redirectUri,
         string responseType,
-        string state)
+        string state,
+        string scope)
     {
         _clientRepository.AddClient(
             clientId,
             clientSecret,
+            [scope],
             redirectUri);
 
         var result = await _authenticator.PerformAuthorizationRequest(
             clientId: clientId,
             redirectUri: redirectUri,
             state: state,
+            scope: scope,
             responseType: responseType);
 
         result
@@ -179,6 +182,33 @@ public sealed class AuthenticateTests(
             redirectUri: redirectUri,
             state: state,
             responseType: null);
+
+        result
+            .StatusCode
+            .Should()
+            .Be(400);
+    }
+
+    [Theory, AutoData]
+    public async Task WrongScope_Returns400(
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string responseType,
+        string state,
+        string scope)
+    {
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            redirectUri);
+
+        var result = await _authenticator.PerformAuthorizationRequest(
+            clientId: clientId,
+            redirectUri: redirectUri,
+            state: state,
+            responseType: responseType,
+            scope: scope);
 
         result
             .StatusCode

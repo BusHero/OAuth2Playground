@@ -17,6 +17,7 @@ public class InMemoryClientRepository : IClientRepository
     public void AddClient(
         string clientId,
         string clientSecret,
+        IReadOnlyCollection<string> scopes,
         params Uri[] redirectUris)
     {
         _clients.Add(new Client
@@ -24,6 +25,21 @@ public class InMemoryClientRepository : IClientRepository
             ClientId = clientId,
             ClientSecret = clientSecret,
             RedirectUris = redirectUris,
+            Scopes = scopes,
+        });
+    }
+
+    public void AddClient(
+        string clientId,
+        string clientSecret,
+        params Uri[] redirectUris)
+    {
+        _clients.Add(new Client
+        {
+            ClientId = clientId,
+            ClientSecret = clientSecret,
+            RedirectUris = redirectUris,
+            Scopes = [],
         });
     }
 }

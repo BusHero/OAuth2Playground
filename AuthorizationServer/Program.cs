@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using AuthorizationServer;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,10 +37,16 @@ app.MapGet("/authorize", (
         request.ResponseType,
         request.State);
 
-    return Results.Ok(new
+
+    if (client.Scopes.Contains(request.Scope) || request.Scope is null)
     {
-        Code = code
-    });
+        return Results.Ok(new
+        {
+            Code = code
+        });
+    }
+
+    return Results.BadRequest();
 });
 
 app.MapPost("/approve", (
