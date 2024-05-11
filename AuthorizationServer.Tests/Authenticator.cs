@@ -40,6 +40,7 @@ internal sealed class Authenticator(
             clientId: clientId,
             redirectUri: redirectUri,
             state: state,
+            scope: "foo",
             responseType: responseType);
 
         var responseObject = await response
@@ -48,12 +49,41 @@ internal sealed class Authenticator(
         return responseObject.Code;
     }
 
-    public async Task<IFlurlResponse> PerformAuthorizationRequest(string? clientId = null,
+    public async Task<IFlurlResponse> PerformAuthorizationRequest(
+        string? clientId = null,
+        Uri? redirectUri = null,
+        string? state = null,
+        string? responseType = "code")
+    {
+        return await PerformAuthorizationRequest(
+            clientId,
+            redirectUri,
+            state,
+            "",
+            responseType);
+    }
+
+    public async Task<IFlurlResponse> PerformAuthorizationRequest(
+        string? clientId = null,
         Uri? redirectUri = null,
         string? state = null,
         string? scope = null,
-        string? responseType = "code"
-    )
+        string? responseType = "code")
+    {
+        return await PerformAuthorizationRequest(
+            clientId,
+            redirectUri,
+            state,
+            scope is null ? null : [scope],
+            responseType);
+    }
+
+    public async Task<IFlurlResponse> PerformAuthorizationRequest(
+        string? clientId = null,
+        Uri? redirectUri = null,
+        string? state = null,
+        IReadOnlyCollection<string>? scope = null,
+        string? responseType = "code")
     {
         var request = _authClient
             .Request()
@@ -87,7 +117,8 @@ internal sealed class Authenticator(
 
         if (scope != null)
         {
-            request = request.AppendQueryParam("scope", scope);
+            var scopeData = string.Join(' ', scope);
+            request = request.AppendQueryParam("scope", scopeData);
         }
 
         var response = await request

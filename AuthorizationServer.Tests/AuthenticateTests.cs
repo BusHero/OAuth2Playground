@@ -79,6 +79,7 @@ public sealed class AuthenticateTests(
             redirectUri);
 
         var result = await _authenticator.PerformAuthorizationRequest(
+            clientId: null,
             redirectUri: redirectUri,
             state: state,
             responseType: responseType);
@@ -131,6 +132,7 @@ public sealed class AuthenticateTests(
         var result = await _authenticator.PerformAuthorizationRequest(
             clientId: clientId,
             state: state,
+            redirectUri: null,
             responseType: responseType);
 
         result
@@ -214,5 +216,92 @@ public sealed class AuthenticateTests(
             .StatusCode
             .Should()
             .Be(400);
+    }
+
+    [Theory, AutoData]
+    public async Task TwoScopes_RequestFirstScope_Returns200(
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string responseType,
+        string state,
+        string scope1,
+        string scope2)
+    {
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            [scope1, scope2],
+            redirectUri);
+
+        var result = await _authenticator.PerformAuthorizationRequest(
+            clientId: clientId,
+            redirectUri: redirectUri,
+            state: state,
+            scope: scope1,
+            responseType: responseType);
+
+        result
+            .StatusCode
+            .Should()
+            .Be(200);
+    }
+
+    [Theory, AutoData]
+    public async Task TwoScopes_RequestSecondScope_Returns200(
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string responseType,
+        string state,
+        string scope1,
+        string scope2)
+    {
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            [scope1, scope2],
+            redirectUri);
+
+        var result = await _authenticator.PerformAuthorizationRequest(
+            clientId: clientId,
+            redirectUri: redirectUri,
+            state: state,
+            scope: scope2,
+            responseType: responseType);
+
+        result
+            .StatusCode
+            .Should()
+            .Be(200);
+    }
+
+    [Theory, AutoData]
+    public async Task TwoScopes_RequestBothScopes_Returns200(
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string responseType,
+        string state,
+        string scope1,
+        string scope2)
+    {
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            [scope1, scope2],
+            redirectUri);
+
+        var result = await _authenticator.PerformAuthorizationRequest(
+            clientId: clientId,
+            redirectUri: redirectUri,
+            state: state,
+            scope: [scope2, scope1],
+            responseType: responseType);
+
+        result
+            .StatusCode
+            .Should()
+            .Be(200);
     }
 }

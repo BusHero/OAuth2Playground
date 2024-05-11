@@ -38,7 +38,15 @@ app.MapGet("/authorize", (
         request.State);
 
 
-    if (client.Scopes.Contains(request.Scope) || request.Scope is null)
+    if (request.Scope is null)
+    {
+        return Results.Ok(new
+        {
+            Code = code
+        });
+    }
+
+    if (request.Scope.Length == 0)
     {
         return Results.Ok(new
         {

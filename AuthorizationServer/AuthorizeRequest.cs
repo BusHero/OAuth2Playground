@@ -7,4 +7,4 @@ internal sealed record AuthorizeRequest(
     [FromQuery(Name = "redirect_uri")] Uri RedirectUri,
     [FromQuery(Name = "response_type")] string ResponseType,
     [FromQuery(Name = "state")] string? State,
-    [FromQuery(Name = "scope")] string? Scope);
+    [FromQuery(Name = "scope")] string[]? Scope);
