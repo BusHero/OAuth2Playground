@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Headers;
+using System.Text.Json.Serialization;
 using Flurl.Http;
 
 namespace AuthorizationServer.Tests;
@@ -269,4 +270,20 @@ internal sealed class Authenticator(
                 ["grant_type"] = "authorization_code",
                 ["code"] = code,
             });
+
+    public async Task<IFlurlResponse> PerformRegisterRequest(
+        RegisterRequest request)
+    {
+        return await _authClient
+            .Request()
+            .AllowAnyHttpStatus()
+            .AppendPathSegment("register")
+            .PostJsonAsync(request);
+    }
+}
+
+public sealed record RegisterRequest
+{
+    [JsonPropertyName("token_endpoint_auth_method")]
+    public string? TokenEndpointAuthMethod { get; init; }
 }

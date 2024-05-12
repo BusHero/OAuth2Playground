@@ -1,7 +1,9 @@
 using System.Net.Http.Headers;
+using System.Text.Json.Serialization;
 using AuthorizationServer;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -95,6 +97,22 @@ app.MapPost("/approve", (
     })
     .DisableAntiforgery()
     .AddEndpointFilter<ValidationFilter<Request>>();
+
+app.MapPost("/register", (
+    [FromBody] RegisterData data) =>
+{
+    if (data.TokenEndpointAuthMethod != "secret_basic")
+    {
+        return Results.BadRequest();
+    }
+
+    return Results.Ok(new Dictionary<string, object>()
+    {
+        ["client_id"] = Guid.NewGuid(),
+        ["client_secret"] = Guid.NewGuid(),
+        ["token_endpoint_auth_method"] = Guid.NewGuid(),
+    });
+});
 
 app.MapPost("/token", async (
         HttpContext context,
@@ -199,3 +217,9 @@ bool AreScopesValid(AuthorizeRequest authorizeRequest, Client client1)
 }
 
 public sealed partial class Program;
+
+public sealed record RegisterData
+{
+    [JsonPropertyName("token_endpoint_auth_method")]
+    public string? TokenEndpointAuthMethod { get; init; }
+}
