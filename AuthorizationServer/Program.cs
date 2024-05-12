@@ -127,6 +127,8 @@ app.MapPost("/register", (
             ["client_id"] = Guid.NewGuid(),
             ["client_secret"] = Guid.NewGuid(),
             ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
+            ["grant_types"] = grantTypes.ToArray(),
+            ["response_types"] = responseTypes.ToArray(),
         });
     }
 
