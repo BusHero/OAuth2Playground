@@ -101,16 +101,21 @@ app.MapPost("/approve", (
 app.MapPost("/register", (
     [FromBody] RegisterData data) =>
 {
-    if (data.TokenEndpointAuthMethod != "secret_basic")
+    string[] acceptedTokenEndpointAuthMethods = ["secret_basic", "secret_post"];
+    var tokenEndpointAuthMethod = data.TokenEndpointAuthMethod ?? "secret_basic";
+    if (!acceptedTokenEndpointAuthMethods.Contains(tokenEndpointAuthMethod))
     {
-        return Results.BadRequest();
+        return Results.BadRequest(new Dictionary<string, string>
+        {
+            ["error"] = "invalid_client_metadata",
+        });
     }
 
-    return Results.Ok(new Dictionary<string, object>()
+    return Results.Ok(new Dictionary<string, object>
     {
         ["client_id"] = Guid.NewGuid(),
         ["client_secret"] = Guid.NewGuid(),
-        ["token_endpoint_auth_method"] = Guid.NewGuid(),
+        ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
     });
 });
 

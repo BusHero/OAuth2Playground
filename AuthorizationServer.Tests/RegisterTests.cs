@@ -1,4 +1,6 @@
-﻿namespace AuthorizationServer.Tests;
+﻿using FluentAssertions.Execution;
+
+namespace AuthorizationServer.Tests;
 
 public sealed class RegisterTests(
     CustomAuthorizationServiceFactory authorizationServiceFactory)
@@ -50,14 +52,49 @@ public sealed class RegisterTests(
         string tokenEndpointAuthMethod)
     {
         var result = await _authenticator
-            .PerformRegisterRequest(new()
+            .PerformRegisterRequest(new RegisterRequest
             {
                 TokenEndpointAuthMethod = tokenEndpointAuthMethod,
             });
 
-        result
-            .StatusCode
+        using (new AssertionScope())
+        {
+            result
+                .StatusCode
+                .Should()
+                .Be(400);
+
+            var json = await result
+                .GetJsonAsync<Dictionary<string, string>>();
+
+            json.Should()
+                .ContainKey("error")
+                .WhoseValue
+                .Should()
+                .Be("invalid_client_metadata");
+        }
+    }
+
+    [Theory]
+    [InlineData(null, "secret_basic")]
+    [InlineData("secret_basic", "secret_basic")]
+    [InlineData("secret_post", "secret_post")]
+    public async Task ValidTokenEndpointAuthMethod_ReturnsAuthMethod(
+        string? requestTokenEndpointAuthMethod,
+        string responseTokenEndpointAuthMethod)
+    {
+        var result = await _authenticator
+            .PerformRegisterRequest(new()
+            {
+                TokenEndpointAuthMethod = requestTokenEndpointAuthMethod,
+            });
+
+        var json = await result.GetJsonAsync<Dictionary<string, string>>();
+
+        json.Should()
+            .ContainKey("token_endpoint_auth_method")
+            .WhoseValue
             .Should()
-            .Be(400);
+            .Be(responseTokenEndpointAuthMethod);
     }
 }
