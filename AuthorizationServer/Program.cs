@@ -36,9 +36,7 @@ app.MapGet("/authorize", (
         request.ResponseType,
         request.State);
 
-    var requestScopes = request.Scope?.Split(' ') ?? [];
-
-    if (requestScopes.Any(x => !client.Scopes.Contains(x)))
+    if (!AreScopesValid(request, client))
     {
         return Results.BadRequest();
     }
@@ -188,5 +186,16 @@ app.MapPost("/token", async (
     .DisableAntiforgery();
 
 app.Run();
+
+return;
+
+bool AreScopesValid(AuthorizeRequest authorizeRequest, Client client1)
+{
+    var requestScopes = authorizeRequest
+        .Scope?
+        .Split(' ') ?? [];
+
+    return requestScopes.All(x => client1.Scopes.Contains(x));
+}
 
 public sealed partial class Program;
