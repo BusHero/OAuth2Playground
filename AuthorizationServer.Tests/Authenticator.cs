@@ -115,7 +115,7 @@ internal sealed class Authenticator(
                 .AppendQueryParam("state", state);
         }
 
-        if (scope != null)
+        if (scope is { Count: > 0 })
         {
             var scopeData = string.Join(' ', scope);
             request = request.AppendQueryParam("scope", scopeData);
