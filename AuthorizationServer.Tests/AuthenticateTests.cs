@@ -304,4 +304,34 @@ public sealed class AuthenticateTests(
             .Should()
             .Be(200);
     }
+
+    [Theory, AutoData]
+    public async Task TwoScopes_ValidAndInvalid_Returns400(
+        string clientId,
+        string clientSecret,
+        Uri redirectUri,
+        string responseType,
+        string state,
+        string scope1,
+        string scope2,
+        string invalidScope)
+    {
+        _clientRepository.AddClient(
+            clientId,
+            clientSecret,
+            [scope1, scope2],
+            redirectUri);
+
+        var result = await _authenticator.PerformAuthorizationRequest(
+            clientId: clientId,
+            redirectUri: redirectUri,
+            state: state,
+            scope: [scope2, invalidScope],
+            responseType: responseType);
+
+        result
+            .StatusCode
+            .Should()
+            .Be(400);
+    }
 }

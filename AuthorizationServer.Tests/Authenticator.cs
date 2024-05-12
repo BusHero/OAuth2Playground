@@ -59,7 +59,7 @@ internal sealed class Authenticator(
             clientId,
             redirectUri,
             state,
-            "",
+            Array.Empty<string>(),
             responseType);
     }
 

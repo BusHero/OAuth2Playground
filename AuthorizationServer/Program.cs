@@ -2,7 +2,6 @@ using System.Net.Http.Headers;
 using AuthorizationServer;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,7 +53,17 @@ app.MapGet("/authorize", (
         });
     }
 
-    return Results.BadRequest();
+    var requestScopes = request.Scope?.Split(' ') ?? [];
+
+    if (requestScopes.Any(scope => !client.Scopes.Contains(scope)))
+    {
+        return Results.BadRequest();
+    }
+
+    return Results.Ok(new
+    {
+        Code = code
+    });
 });
 
 app.MapPost("/approve", (
@@ -106,94 +115,93 @@ app.MapPost("/approve", (
     .DisableAntiforgery()
     .AddEndpointFilter<ValidationFilter<Request>>();
 
-app.MapPost(
-        "/token", async (
-            HttpContext context,
-            [FromForm(Name = "grant_type")] string grantType,
-            [FromForm(Name = "code")] string code,
-            [FromServices] IClientRepository clientRepository,
-            [FromServices] InMemoryCodeRepository codesRepository) =>
+app.MapPost("/token", async (
+        HttpContext context,
+        [FromForm(Name = "grant_type")] string grantType,
+        [FromForm(Name = "code")] string code,
+        [FromServices] IClientRepository clientRepository,
+        [FromServices] InMemoryCodeRepository codesRepository) =>
+    {
+        var clientId = default(string);
+        var clientSecret = default(string);
+        var auth = context.Request.Headers.Authorization;
+        if (auth.Count != 0)
         {
-            var clientId = default(string);
-            var clientSecret = default(string);
-            var auth = context.Request.Headers.Authorization;
-            if (auth.Count != 0)
-            {
-                var authHeader = AuthenticationHeaderValue.Parse(auth!);
-                if (authHeader.Scheme != "Basic")
-                {
-                    return Results.BadRequest();
-                }
-
-                var stuff = authHeader.Parameter!.FromBase64String();
-                var parameters = stuff.Split(':');
-
-                clientId = parameters[0];
-                clientSecret = parameters[1];
-            }
-
-            var clientFromBody = default(string);
-            var secretFromBody = default(string);
-            if (context.Request.HasFormContentType)
-            {
-                var formData = await context
-                    .Request
-                    .ReadFormAsync();
-                if (formData.TryGetValue("client", out var clientFromBody1))
-                {
-                    clientFromBody = clientFromBody1.ToString();
-                }
-
-                if (formData.TryGetValue("secret", out var secretFromBody1))
-                {
-                    secretFromBody = secretFromBody1.ToString();
-                }
-            }
-
-            if (clientId is not null && clientFromBody is not null)
-            {
-                return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
-            }
-
-            if (clientId is null && clientFromBody is null)
-            {
-                return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
-            }
-
-            var client = clientRepository.FindClientById(clientId ?? clientFromBody!);
-            if (client is null)
-            {
-                return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
-            }
-
-            var actualSecret = clientSecret ?? secretFromBody;
-            if (client.ClientSecret != actualSecret)
-            {
-                return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
-            }
-
-            if (grantType != "authorization_code")
+            var authHeader = AuthenticationHeaderValue.Parse(auth!);
+            if (authHeader.Scheme != "Basic")
             {
                 return Results.BadRequest();
             }
 
-            var clientIdAssociatedWithCode = codesRepository.GetAndRemoveClientForCode(code);
+            var stuff = authHeader.Parameter!.FromBase64String();
+            var parameters = stuff.Split(':');
 
-            if (clientIdAssociatedWithCode != client.ClientId)
+            clientId = parameters[0];
+            clientSecret = parameters[1];
+        }
+
+        var clientFromBody = default(string);
+        var secretFromBody = default(string);
+        if (context.Request.HasFormContentType)
+        {
+            var formData = await context
+                .Request
+                .ReadFormAsync();
+            if (formData.TryGetValue("client", out var clientFromBody1))
             {
-                return Results.BadRequest();
+                clientFromBody = clientFromBody1.ToString();
             }
 
-            var token = Guid.NewGuid().ToString();
-
-            await File.WriteAllLinesAsync($"{Path.GetTempPath()}/tokens", [token]);
-
-            return Results.Ok(new
+            if (formData.TryGetValue("secret", out var secretFromBody1))
             {
-                access_token = token,
-                token_type = "Bearer",
-            });
-        })
+                secretFromBody = secretFromBody1.ToString();
+            }
+        }
+
+        if (clientId is not null && clientFromBody is not null)
+        {
+            return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
+        }
+
+        if (clientId is null && clientFromBody is null)
+        {
+            return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
+        }
+
+        var client = clientRepository.FindClientById(clientId ?? clientFromBody!);
+        if (client is null)
+        {
+            return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
+        }
+
+        var actualSecret = clientSecret ?? secretFromBody;
+        if (client.ClientSecret != actualSecret)
+        {
+            return Results.Json(new { Error = "invalid_client" }, statusCode: 401);
+        }
+
+        if (grantType != "authorization_code")
+        {
+            return Results.BadRequest();
+        }
+
+        var clientIdAssociatedWithCode = codesRepository.GetAndRemoveClientForCode(code);
+
+        if (clientIdAssociatedWithCode != client.ClientId)
+        {
+            return Results.BadRequest();
+        }
+
+        var token = Guid.NewGuid().ToString();
+
+        await File.WriteAllLinesAsync($"{Path.GetTempPath()}/tokens", [token]);
+
+        return Results.Ok(new
+        {
+            access_token = token,
+            token_type = "Bearer",
+        });
+    })
     .DisableAntiforgery();
 
 app.Run();
