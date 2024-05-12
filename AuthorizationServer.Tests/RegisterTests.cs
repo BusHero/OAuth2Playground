@@ -1,6 +1,4 @@
-﻿using FluentAssertions.Execution;
-
-namespace AuthorizationServer.Tests;
+﻿namespace AuthorizationServer.Tests;
 
 public sealed class RegisterTests(
     CustomAuthorizationServiceFactory authorizationServiceFactory)
@@ -48,7 +46,7 @@ public sealed class RegisterTests(
     }
 
     [Theory, AutoData]
-    public async Task InvalidTokenEndpointAuthMethod(
+    public async Task InvalidTokenEndpointAuthMethod_Returns400(
         string tokenEndpointAuthMethod)
     {
         var result = await _authenticator
@@ -57,22 +55,30 @@ public sealed class RegisterTests(
                 TokenEndpointAuthMethod = tokenEndpointAuthMethod,
             });
 
-        using (new AssertionScope())
-        {
-            result
-                .StatusCode
-                .Should()
-                .Be(400);
+        result
+            .StatusCode
+            .Should()
+            .Be(400);
+    }
 
-            var json = await result
-                .GetJsonAsync<Dictionary<string, string>>();
+    [Theory, AutoData]
+    public async Task InvalidTokenEndpointAuthMethod_ReturnsError(
+        string tokenEndpointAuthMethod)
+    {
+        var result = await _authenticator
+            .PerformRegisterRequest(new RegisterRequest
+            {
+                TokenEndpointAuthMethod = tokenEndpointAuthMethod,
+            });
 
-            json.Should()
-                .ContainKey("error")
-                .WhoseValue
-                .Should()
-                .Be("invalid_client_metadata");
-        }
+        var json = await result
+            .GetJsonAsync<Dictionary<string, string>>();
+
+        json.Should()
+            .ContainKey("error")
+            .WhoseValue
+            .Should()
+            .Be("invalid_client_metadata");
     }
 
     [Theory]
