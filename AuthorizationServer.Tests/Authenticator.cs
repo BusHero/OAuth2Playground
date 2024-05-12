@@ -287,8 +287,16 @@ public sealed record RegisterRequest
     [JsonPropertyName("token_endpoint_auth_method")]
     public string? TokenEndpointAuthMethod { get; init; }
 
+    [JsonPropertyName("grant_types")] 
+    public required string[] GrantTypes { get; init; }
+
+    [JsonPropertyName("response_types")] 
+    public required string[] ResponseTypes { get; init; }
+
     public static RegisterRequest Valid { get; } = new()
     {
         TokenEndpointAuthMethod = "secret_basic",
+        GrantTypes = [],
+        ResponseTypes = [],
     };
 }

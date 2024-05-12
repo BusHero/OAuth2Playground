@@ -111,11 +111,28 @@ app.MapPost("/register", (
         });
     }
 
-    return Results.Ok(new Dictionary<string, object>
+    string[] validGrantTypes = ["authorization_code", "refresh_token"];
+    string[] validResponseTypes = ["code"];
+
+    var grantTypes = data.GrantTypes.ToHashSet();
+    var responseTypes = data.ResponseTypes.ToHashSet();
+
+    grantTypes.Add("authorization_code");
+    responseTypes.Add("code");
+
+    if (grantTypes.All(validGrantTypes.Contains) && responseTypes.All(validResponseTypes.Contains))
     {
-        ["client_id"] = Guid.NewGuid(),
-        ["client_secret"] = Guid.NewGuid(),
-        ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
+        return Results.Ok(new Dictionary<string, object>
+        {
+            ["client_id"] = Guid.NewGuid(),
+            ["client_secret"] = Guid.NewGuid(),
+            ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
+        });
+    }
+
+    return Results.BadRequest(new Dictionary<string, string>
+    {
+        ["error"] = "invalid_client_metadata",
     });
 });
 
@@ -227,4 +244,8 @@ public sealed record RegisterData
 {
     [JsonPropertyName("token_endpoint_auth_method")]
     public string? TokenEndpointAuthMethod { get; init; }
+
+    [JsonPropertyName("grant_types")] public string[] GrantTypes { get; init; } = [];
+
+    [JsonPropertyName("response_types")] public string[] ResponseTypes { get; init; } = [];
 }

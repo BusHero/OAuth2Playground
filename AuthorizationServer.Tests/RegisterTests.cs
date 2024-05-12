@@ -96,4 +96,59 @@ public sealed class RegisterTests(
             .Should()
             .Be(responseTokenEndpointAuthMethod);
     }
+
+    [Theory, AutoData]
+    public async Task InvalidGrantTypeAndResponseType_Returns400(
+        string grantType,
+        string responseType)
+    {
+        var result = await _authenticator
+            .PerformRegisterRequest(RegisterRequest.Valid with
+            {
+                GrantTypes = [grantType],
+                ResponseTypes = [responseType],
+            });
+
+        result
+            .StatusCode
+            .Should()
+            .Be(400);
+    }
+
+    [Theory]
+    [MemberData(nameof(ValidCombinations))]
+    public async Task ValidCombinationOfResponseTypeAndGrantType_Returns200(
+        DataFoo data)
+    {
+        var result = await _authenticator
+            .PerformRegisterRequest(RegisterRequest.Valid with
+            {
+                GrantTypes = data.RequestGrantType,
+                ResponseTypes = data.RequestResponseType,
+            });
+
+        result
+            .StatusCode
+            .Should()
+            .Be(200);
+    }
+
+    public static TheoryData<DataFoo> ValidCombinations => new()
+    {
+        new DataFoo { RequestGrantType = [], RequestResponseType = [] },
+        new DataFoo { RequestGrantType = [], RequestResponseType = ["code"] },
+        new DataFoo { RequestGrantType = ["authorization_code"], RequestResponseType = [] },
+        new DataFoo { RequestGrantType = ["authorization_code"], RequestResponseType = ["code"] },
+        new DataFoo { RequestGrantType = ["refresh_token"], RequestResponseType = [] },
+        new DataFoo { RequestGrantType = ["refresh_token"], RequestResponseType = ["code"] },
+        new DataFoo { RequestGrantType = ["authorization_code", "refresh_token"], RequestResponseType = [] },
+        new DataFoo { RequestGrantType = ["authorization_code", "refresh_token"], RequestResponseType = ["code"] },
+    };
+}
+
+public sealed record DataFoo
+{
+    public required string[] RequestGrantType { get; init; }
+
+    public required string[] RequestResponseType { get; init; }
 }
