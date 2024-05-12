@@ -12,10 +12,7 @@ public sealed class RegisterTests(
     public async Task HappyPath_Returns200()
     {
         var result = await _authenticator
-            .PerformRegisterRequest(new RegisterRequest()
-            {
-                TokenEndpointAuthMethod = "secret_basic"
-            });
+            .PerformRegisterRequest(RegisterRequest.Valid);
 
         result
             .StatusCode
@@ -26,14 +23,10 @@ public sealed class RegisterTests(
     [Theory]
     [InlineData("client_id")]
     [InlineData("client_secret")]
-    [InlineData("token_endpoint_auth_method")]
     public async Task HappyPath_ResponseContainsExpectedKeys(string key)
     {
         var result = await _authenticator
-            .PerformRegisterRequest(new()
-            {
-                TokenEndpointAuthMethod = "secret_basic"
-            });
+            .PerformRegisterRequest(RegisterRequest.Valid);
 
         var json = await result
             .GetJsonAsync<Dictionary<string, object>>();
@@ -50,9 +43,9 @@ public sealed class RegisterTests(
         string tokenEndpointAuthMethod)
     {
         var result = await _authenticator
-            .PerformRegisterRequest(new RegisterRequest
+            .PerformRegisterRequest(RegisterRequest.Valid with
             {
-                TokenEndpointAuthMethod = tokenEndpointAuthMethod,
+                TokenEndpointAuthMethod = tokenEndpointAuthMethod
             });
 
         result
@@ -66,9 +59,9 @@ public sealed class RegisterTests(
         string tokenEndpointAuthMethod)
     {
         var result = await _authenticator
-            .PerformRegisterRequest(new RegisterRequest
+            .PerformRegisterRequest(RegisterRequest.Valid with
             {
-                TokenEndpointAuthMethod = tokenEndpointAuthMethod,
+                TokenEndpointAuthMethod = tokenEndpointAuthMethod
             });
 
         var json = await result
@@ -90,7 +83,7 @@ public sealed class RegisterTests(
         string responseTokenEndpointAuthMethod)
     {
         var result = await _authenticator
-            .PerformRegisterRequest(new()
+            .PerformRegisterRequest(RegisterRequest.Valid with
             {
                 TokenEndpointAuthMethod = requestTokenEndpointAuthMethod,
             });

@@ -286,4 +286,9 @@ public sealed record RegisterRequest
 {
     [JsonPropertyName("token_endpoint_auth_method")]
     public string? TokenEndpointAuthMethod { get; init; }
+
+    public static RegisterRequest Valid { get; } = new()
+    {
+        TokenEndpointAuthMethod = "secret_basic",
+    };
 }
