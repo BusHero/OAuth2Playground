@@ -229,37 +229,36 @@ public sealed class RegisterTests(
             OutputResponseTypes = ["code"],
         },
     };
-}
 
-public sealed record ReturnBackCombination
-{
-    public required string[] InputGrantTypes { get; init; }
+    public sealed record ReturnBackCombination
+    {
+        public required string[] InputGrantTypes { get; init; }
 
-    public required string[] InputResponseTypes { get; init; }
+        public required string[] InputResponseTypes { get; init; }
 
-    public required string[] OutputGrantTypes { get; init; }
+        public required string[] OutputGrantTypes { get; init; }
 
-    public required string[] OutputResponseTypes { get; init; }
-}
+        public required string[] OutputResponseTypes { get; init; }
+    }
 
-[Serializable]
-public sealed record BlahBlahCombination
-{
-    public required string[] GrantTypes { get; init; }
+    public sealed record BlahBlahCombination
+    {
+        public required string[] GrantTypes { get; init; }
 
-    public required string[] ResponseTypes { get; init; }
-}
+        public required string[] ResponseTypes { get; init; }
+    }
 
-public sealed record RegisterResponse
-{
-    [JsonPropertyName("client_id")] public required string ClientId { get; init; }
+    public sealed record RegisterResponse
+    {
+        [JsonPropertyName("client_id")] public required string ClientId { get; init; }
 
-    [JsonPropertyName("client_secret")] public required string ClientSecret { get; init; }
+        [JsonPropertyName("client_secret")] public required string ClientSecret { get; init; }
 
-    [JsonPropertyName("grant_types")] public required string[] GrantTypes { get; init; }
+        [JsonPropertyName("grant_types")] public required string[] GrantTypes { get; init; }
 
-    [JsonPropertyName("response_types")] public required string[] ResponseTypes { get; init; }
+        [JsonPropertyName("response_types")] public required string[] ResponseTypes { get; init; }
 
-    [JsonPropertyName("token_endpoint_auth_method")]
-    public required string TokenEndpointAuthMethod { get; init; }
+        [JsonPropertyName("token_endpoint_auth_method")]
+        public required string TokenEndpointAuthMethod { get; init; }
+    }
 }
