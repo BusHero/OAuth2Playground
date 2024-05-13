@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 using AuthorizationServer;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 var builder = WebApplication.CreateBuilder(args);
 
