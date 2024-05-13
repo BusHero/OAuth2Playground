@@ -1,6 +1,6 @@
 ﻿namespace AuthorizationServer;
 
-public class InMemoryClientRepository : IClientRepository
+internal sealed class InMemoryClientRepository : IClientRepository
 {
     private readonly List<Client> _clients = [];
 

@@ -13,15 +13,14 @@ public sealed class ResourceTests(
         resourceFactory.CreateDefaultClient());
 
     private readonly Authenticator _authenticator = new(
-        authFactory.CreateDefaultClient(), 
-        authFactory.ClientRepository);
+        authFactory.CreateDefaultClient());
 
     [Theory, AutoData]
     public async Task HappyPath_Returns200(
-        Client client)
+        Uri redirectUri)
     {
-        var token = await _authenticator.PerformAuthentication(client);
-        
+        var token = await _authenticator.PerformAuthentication(redirectUri);
+
         var result = await _resourceClient
             .Request()
             .AllowAnyHttpStatus()

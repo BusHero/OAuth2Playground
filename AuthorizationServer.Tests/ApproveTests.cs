@@ -11,30 +11,26 @@ public sealed class ApproveTests
         var httpClient = authorizationServiceFactory.CreateDefaultClient();
 
         _client = new FlurlClient(httpClient);
-        _clientRepository = authorizationServiceFactory.ClientRepository;
-        _authenticator = new Authenticator(httpClient, _clientRepository);
+        _authenticator = new Authenticator(
+            httpClient);
     }
 
     private readonly FlurlClient _client;
-
-    private readonly InMemoryClientRepository _clientRepository;
 
     private readonly Authenticator _authenticator;
 
     [Theory, AutoData]
     public async Task HappyPath_Returns302(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+        });
 
         var requestId = await _authenticator.GetRequestId(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
@@ -49,18 +45,16 @@ public sealed class ApproveTests
 
     [Theory, AutoData]
     public async Task HappyPath_ReturnsCode(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+        });
 
         var requestId = await _authenticator.GetRequestId(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
@@ -78,18 +72,16 @@ public sealed class ApproveTests
 
     [Theory, AutoData]
     public async Task HappyPath_ReturnsExpectedState(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId, 
-            clientSecret, 
-            redirectUri);
-
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+        });
+        
         var requestId = await _authenticator.GetRequestId(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
@@ -110,19 +102,17 @@ public sealed class ApproveTests
 
     [Theory, AutoData]
     public async Task RequestId_Invalid_Returns400(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string requestId,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId, 
-            clientSecret, 
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+        });
 
         await _authenticator.GetRequestId(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
@@ -137,19 +127,17 @@ public sealed class ApproveTests
 
     [Theory, AutoData]
     public async Task RequestId_Invalid_ReturnsExpectedMessage(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string requestId,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId, 
-            clientSecret, 
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+        });
 
         await _authenticator.GetRequestId(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
@@ -166,18 +154,16 @@ public sealed class ApproveTests
 
     [Theory, AutoData]
     public async Task RequestId_Missing_Returns400(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId, 
-            clientSecret, 
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+        });
 
         await _authenticator.GetRequestId(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
@@ -195,18 +181,16 @@ public sealed class ApproveTests
 
     [Theory, AutoData]
     public async Task Approve_Missing_RedirectToSetupUri(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId, 
-            clientSecret, 
-            redirectUri);
-        
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+        });
+
         var requestId = await _authenticator.GetRequestId(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
@@ -229,19 +213,17 @@ public sealed class ApproveTests
 
     [Theory, AutoData]
     public async Task ResponseType_Invalid_ReturnsExpectedErrorMessage(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string responseType,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId, 
-            clientSecret, 
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+        });
 
         var requestId = await _authenticator.GetRequestId(
-            clientId,
+            client.ClientId,
             redirectUri,
             state,
             responseType: responseType);
@@ -263,18 +245,16 @@ public sealed class ApproveTests
 
     [Theory, AutoData]
     public async Task Approve_Missing_ReturnsExpectedErrorMessage(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId, 
-            clientSecret, 
-            redirectUri);
-        
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+        });
+
         var requestId = await _authenticator.GetRequestId(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 

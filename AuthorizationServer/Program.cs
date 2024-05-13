@@ -31,17 +31,17 @@ app.MapGet("/authorize", (
         .NewGuid()
         .ToString();
 
+    if (!AreScopesValid(request, client))
+    {
+        return Results.BadRequest();
+    }
+    
     requestsRepository.Add(
         code,
         client.ClientId,
         request.RedirectUri,
         request.ResponseType,
         request.State);
-
-    if (!AreScopesValid(request, client))
-    {
-        return Results.BadRequest();
-    }
 
     return Results.Ok(new
     {
@@ -99,7 +99,8 @@ app.MapPost("/approve", (
     .AddEndpointFilter<ValidationFilter<Request>>();
 
 app.MapPost("/register", (
-    [FromBody] RegisterData data) =>
+    [FromBody] RegisterData data,
+    [FromServices] IClientRepository clientRepository) =>
 {
     string[] acceptedTokenEndpointAuthMethods = ["secret_basic", "secret_post"];
     var tokenEndpointAuthMethod = data.TokenEndpointAuthMethod ?? "secret_basic";
@@ -136,14 +137,23 @@ app.MapPost("/register", (
         });
     }
 
+    var clientId = Guid.NewGuid().ToString();
+    var clientSecret = Guid.NewGuid().ToString();
+    clientRepository.AddClient(
+        clientId,
+        clientSecret,
+        scopes: data.Scope.Split(' '),
+        data.RedirectUris);
+
     return Results.Ok(new Dictionary<string, object>
     {
-        ["client_id"] = Guid.NewGuid(),
-        ["client_secret"] = Guid.NewGuid(),
+        ["client_id"] = clientId,
+        ["client_secret"] = clientSecret,
         ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
         ["grant_types"] = grantTypes.ToArray(),
         ["response_types"] = responseTypes.ToArray(),
         ["redirect_uris"] = data.RedirectUris,
+        ["scope"] = data.Scope,
     });
 });
 
@@ -260,5 +270,7 @@ internal sealed record RegisterData
 
     [JsonPropertyName("response_types")] public string[] ResponseTypes { get; init; } = [];
 
-    [JsonPropertyName("redirect_uris")] public string[] RedirectUris { get; init; } = [];
+    [JsonPropertyName("redirect_uris")] public Uri[] RedirectUris { get; init; } = [];
+
+    [JsonPropertyName("scope")] public string Scope { get; init; } = null!;
 }

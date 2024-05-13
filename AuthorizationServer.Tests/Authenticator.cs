@@ -5,19 +5,21 @@ using Flurl.Http;
 namespace AuthorizationServer.Tests;
 
 internal sealed class Authenticator(
-    HttpClient oauthClient,
-    InMemoryClientRepository clientRepository)
+    HttpClient oauthClient)
 {
     private readonly FlurlClient _authClient = new(oauthClient);
 
     public async Task<string> PerformAuthentication(
-        Client client)
+        Uri redirectUri)
     {
-        clientRepository.AddClient(client);
+        var client = await RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri]
+        });
 
         var requestId = await GetRequestId(
             client.ClientId,
-            client.RedirectUris[0],
+            redirectUri,
             Guid.NewGuid().ToString());
 
         var authorizationCode = await GetAuthorizationCode(
@@ -41,7 +43,7 @@ internal sealed class Authenticator(
             clientId: clientId,
             redirectUri: redirectUri,
             state: state,
-            scope: "foo",
+            scope: default(string),
             responseType: responseType);
 
         var responseObject = await response
@@ -271,6 +273,16 @@ internal sealed class Authenticator(
                 ["code"] = code,
             });
 
+    public async Task<RegisterResponse> RegisterClient(
+        RegisterRequest request)
+    {
+        var response = await PerformRegisterRequest(request);
+
+        var client = await response.GetJsonAsync<RegisterResponse>();
+
+        return client;
+    }
+
     public async Task<IFlurlResponse> PerformRegisterRequest(
         RegisterRequest request)
     {
@@ -290,6 +302,7 @@ public sealed record RegisterRequest
         GrantTypes = [],
         ResponseTypes = [],
         RedirectUris = [new Uri("http://example.com")],
+        Scope = "foo",
     };
 
     [JsonPropertyName("token_endpoint_auth_method")]
@@ -300,4 +313,6 @@ public sealed record RegisterRequest
     [JsonPropertyName("response_types")] public required string[] ResponseTypes { get; init; }
 
     [JsonPropertyName("redirect_uris")] public required Uri[] RedirectUris { get; init; }
+
+    [JsonPropertyName("scope")] public required string Scope { get; init; }
 }

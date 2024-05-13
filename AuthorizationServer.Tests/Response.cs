@@ -2,5 +2,5 @@
 
 internal sealed class Response
 {
-    public required string Code { get; init; }
+    public string Code { get; init; } = null!;
 }

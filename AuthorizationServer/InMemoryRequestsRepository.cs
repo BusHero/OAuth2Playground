@@ -1,6 +1,6 @@
 ﻿namespace AuthorizationServer;
 
-public sealed class InMemoryRequestsRepository
+internal sealed class InMemoryRequestsRepository
 {
     private readonly Dictionary<string, RequestDto> _requests = new();
 

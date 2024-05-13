@@ -9,32 +9,27 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
     : IClassFixture<CustomAuthorizationServiceFactory>
 {
     private readonly Authenticator _authenticator = new(
-        authorizationServiceFactory.CreateDefaultClient(),
-        authorizationServiceFactory.ClientRepository);
-
-    private readonly InMemoryClientRepository _clientRepository
-        = authorizationServiceFactory.ClientRepository;
+        authorizationServiceFactory.CreateDefaultClient());
 
     [Theory, AutoData]
     public async Task HappyPath_Returns200(
-        string clientId,
-        string clientSecret,
         string state,
         Uri redirectUri)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [redirectUri],
+            });
 
         var code = await _authenticator.GetAuthorizationCode(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
         var result = await _authenticator.PerformTokenRequest(
-            clientId,
-            clientSecret,
+            client.ClientId,
+            client.ClientSecret,
             code);
 
         result
@@ -45,24 +40,23 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
 
     [Theory, AutoData]
     public async Task HappyPath_ReturnsToken(
-        string clientId,
-        string clientSecret,
         string state,
         Uri redirectUri)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [redirectUri],
+            });
 
         var code = await _authenticator.GetAuthorizationCode(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
         var result = await _authenticator.PerformTokenRequest(
-            clientId,
-            clientSecret,
+            client.ClientId,
+            client.ClientSecret,
             code);
 
         var json = await result.GetJsonAsync<Dictionary<string, string>>();
@@ -85,25 +79,29 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
 
     [Theory, AutoData]
     public async Task CodeForWrongClient_Returns400(
-        string rightClientId,
-        string rightClientSecret,
         Uri rightRedirectUri,
-        string wrongClientId,
-        string wrongClientSecret,
         Uri wrongRedirectUri,
         string state)
     {
-        _clientRepository.AddClient(rightClientId, rightClientSecret, rightRedirectUri);
-        _clientRepository.AddClient(wrongClientId, wrongClientSecret, wrongRedirectUri);
+        var rightClient = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [rightRedirectUri],
+            });
+        var wrongClient = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [wrongRedirectUri],
+            });
 
         var code = await _authenticator.GetAuthorizationCode(
-            rightClientId,
+            rightClient.ClientId,
             rightRedirectUri,
             state);
 
         var result = await _authenticator.PerformTokenRequest(
-            wrongClientId,
-            wrongClientSecret,
+            wrongClient.ClientId,
+            wrongClient.ClientSecret,
             code);
 
         result
@@ -114,25 +112,24 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
 
     [Theory, AutoData]
     public async Task InvalidCode_Returns400(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string state,
         string invalidCode)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [redirectUri],
+            });
 
         await _authenticator.GetAuthorizationCode(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
         var result = await _authenticator.PerformTokenRequest(
-            clientId,
-            clientSecret,
+            client.ClientId,
+            client.ClientSecret,
             invalidCode);
 
         result
@@ -143,18 +140,17 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
 
     [Theory, AutoData]
     public async Task MissingCode_Returns400(
-        string clientId,
-        string clientSecret,
         Uri redirectUri)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [redirectUri],
+            });
 
         var result = await _authenticator.PerformTokenRequest(
-            clientId,
-            clientSecret,
+            client.ClientId,
+            client.ClientSecret,
             new Dictionary<string, string>
             {
                 ["grant_type"] = "authorization_code",
@@ -168,24 +164,23 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
 
     [Theory, AutoData]
     public async Task MissingGrantType_Returns400(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [redirectUri],
+            });
 
         var code = await _authenticator.GetAuthorizationCode(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
         var result = await _authenticator.PerformTokenRequest(
-            clientId,
-            clientSecret,
+            client.ClientId,
+            client.ClientSecret,
             new Dictionary<string, string>
             {
                 ["code"] = code,
@@ -199,25 +194,24 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
 
     [Theory, AutoData]
     public async Task GrantTypeIsNotAuthorizationCode_Returns400(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string grantType,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [redirectUri],
+            });
 
         var code = await _authenticator.GetAuthorizationCode(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
         var result = await _authenticator.PerformTokenRequest(
-            clientId,
-            clientSecret,
+            client.ClientId,
+            client.ClientSecret,
             grantType,
             code);
 
@@ -229,25 +223,24 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
 
     [Theory, AutoData]
     public async Task WrongClientId_Returns401(
-        string clientId,
-        string clientSecret,
         string wrongClientId,
         Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [redirectUri],
+            });
 
         var code = await _authenticator.GetAuthorizationCode(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
         var result = await _authenticator.PerformTokenRequest(
             wrongClientId,
-            clientSecret,
+            client.ClientSecret,
             code);
 
         result
@@ -258,24 +251,23 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
 
     [Theory, AutoData]
     public async Task WrongSecret_Returns401(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string state,
         string wrongSecret)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [redirectUri],
+            });
 
         var code = await _authenticator.GetAuthorizationCode(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
         var result = await _authenticator.PerformTokenRequest(
-            clientId,
+            client.ClientId,
             wrongSecret,
             code);
 
@@ -287,18 +279,17 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
 
     [Theory, AutoData]
     public async Task NoCredentials_Return401(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [redirectUri],
+            });
 
         var code = await _authenticator.GetAuthorizationCode(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
@@ -313,26 +304,25 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
 
     [Theory, AutoData]
     public async Task CredentialsInBody_Returns200(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [redirectUri],
+            });
 
         var code = await _authenticator.GetAuthorizationCode(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
         var result = await _authenticator.PerformTokenRequest(
             new Dictionary<string, string>
             {
-                ["client"] = clientId,
-                ["secret"] = clientSecret,
+                ["client"] = client.ClientId,
+                ["secret"] = client.ClientSecret,
                 ["grant_type"] = "authorization_code",
                 ["code"] = code,
             });
@@ -345,28 +335,27 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
 
     [Theory, AutoData]
     public async Task SameCredentialsInHeaderAndBody_Returns401(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [redirectUri],
+            });
 
         var code = await _authenticator.GetAuthorizationCode(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
         var result = await _authenticator.PerformTokenRequest(
-            clientId,
-            clientSecret,
+            client.ClientId,
+            client.ClientSecret,
             new Dictionary<string, string>
             {
-                ["client"] = clientId,
-                ["secret"] = clientSecret,
+                ["client"] = client.ClientId,
+                ["secret"] = client.ClientSecret,
                 ["grant_type"] = "authorization_code",
                 ["code"] = code,
             });
@@ -379,20 +368,19 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
 
     [Theory, AutoData]
     public async Task WrongAuthenticationScheme_Returns400(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string scheme,
         string parameter,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [redirectUri],
+            });
 
         var code = await _authenticator.GetAuthorizationCode(
-            clientId,
+            client.ClientId,
             redirectUri,
             state);
 
@@ -408,36 +396,33 @@ public sealed class TokenTests(CustomAuthorizationServiceFactory authorizationSe
 
     [Theory, AutoData]
     public async Task DifferentCredentialsInHeaderAndBody_Returns401(
-        string clientId1,
-        string clientSecret1,
         Uri redirectUri1,
-        string clientId2,
-        string clientSecret2,
         Uri redirectUri2,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId1,
-            clientSecret1,
-            redirectUri1);
-
-        _clientRepository.AddClient(
-            clientId2,
-            clientSecret2,
-            redirectUri2);
+        var client1 = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [redirectUri1],
+            });
+        var client2 = await _authenticator
+            .RegisterClient(RegisterRequest.Valid with
+            {
+                RedirectUris = [redirectUri2],
+            });
 
         var code = await _authenticator.GetAuthorizationCode(
-            clientId1,
+            client1.ClientId,
             redirectUri1,
             state);
 
         var result = await _authenticator.PerformTokenRequest(
-            clientId1,
-            clientSecret1,
+            client1.ClientId,
+            client1.ClientSecret,
             new Dictionary<string, string>()
             {
-                ["client"] = clientId2,
-                ["secret"] = clientSecret2,
+                ["client"] = client2.ClientId,
+                ["secret"] = client2.ClientSecret,
                 ["grant_type"] = "authorization_code",
                 ["code"] = code,
             });

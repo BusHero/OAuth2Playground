@@ -11,7 +11,6 @@ public sealed class HttpMockTests
     {
         using var server = WireMockServer.Start(8888);
 
-
         var client = new HttpClient()
         {
             BaseAddress = new Uri("http://localhost:8888")

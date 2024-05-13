@@ -5,29 +5,23 @@ public sealed class AuthenticateTests(
     : IClassFixture<CustomAuthorizationServiceFactory>
 {
     private readonly Authenticator _authenticator = new(
-        authorizationServiceFactory.CreateDefaultClient(),
-        authorizationServiceFactory.ClientRepository);
-
-    private readonly InMemoryClientRepository _clientRepository
-        = authorizationServiceFactory.ClientRepository;
+        authorizationServiceFactory.CreateDefaultClient());
 
     [Theory, AutoData]
     public async Task HappyPath_ReturnsOk(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string responseType,
         string state,
         string scope)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            [scope],
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+            Scope = scope,
+        });
 
         var result = await _authenticator.PerformAuthorizationRequest(
-            clientId: clientId,
+            clientId: client.ClientId,
             redirectUri: redirectUri,
             state: state,
             scope: scope,
@@ -41,19 +35,17 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task HappyPath_ReturnsRequestId(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string responseType,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+        });
 
         var result = await _authenticator.PerformAuthorizationRequest(
-            clientId: clientId,
+            clientId: client.ClientId,
             redirectUri: redirectUri,
             state: state,
             responseType: responseType);
@@ -67,16 +59,14 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task ClientId_Missing_ReturnsBadRequest(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string responseType,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+        });
 
         var result = await _authenticator.PerformAuthorizationRequest(
             clientId: null,
@@ -92,17 +82,15 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task ClientId_Invalid_ReturnsBadRequest(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string responseType,
         string invalidClientId,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+        });
 
         var result = await _authenticator.PerformAuthorizationRequest(
             clientId: invalidClientId,
@@ -118,19 +106,17 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task RedirectUri_Missing_ReturnsBadRequest(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string responseType,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+        });
 
         var result = await _authenticator.PerformAuthorizationRequest(
-            clientId: clientId,
+            clientId: client.ClientId,
             state: state,
             redirectUri: null,
             responseType: responseType);
@@ -143,20 +129,18 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task RedirectUri_InvalidRedirectUri_ReturnsBadRequest(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string state,
         string responseType,
         Uri invalidRedirectUri)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+        });
 
         var result = await _authenticator.PerformAuthorizationRequest(
-            clientId: clientId,
+            clientId: client.ClientId,
             redirectUri: invalidRedirectUri,
             state: state,
             responseType: responseType);
@@ -169,18 +153,16 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task ResponseType_Missing_ReturnsBadRequest(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string state)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+        });
 
         var result = await _authenticator.PerformAuthorizationRequest(
-            clientId: clientId,
+            clientId: client.ClientId,
             redirectUri: redirectUri,
             state: state,
             responseType: null);
@@ -193,24 +175,24 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task WrongScope_Returns400(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string responseType,
         string state,
-        string scope)
+        string scope,
+        string wrongScope)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+            Scope = scope,
+        });
 
         var result = await _authenticator.PerformAuthorizationRequest(
-            clientId: clientId,
+            clientId: client.ClientId,
             redirectUri: redirectUri,
             state: state,
             responseType: responseType,
-            scope: scope);
+            scope: wrongScope);
 
         result
             .StatusCode
@@ -220,22 +202,20 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task TwoScopes_RequestFirstScope_Returns200(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string responseType,
         string state,
         string scope1,
         string scope2)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            [scope1, scope2],
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+            Scope = $"{scope1} {scope2}",
+        });
 
         var result = await _authenticator.PerformAuthorizationRequest(
-            clientId: clientId,
+            clientId: client.ClientId,
             redirectUri: redirectUri,
             state: state,
             scope: scope1,
@@ -249,22 +229,20 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task TwoScopes_RequestSecondScope_Returns200(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string responseType,
         string state,
         string scope1,
         string scope2)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            [scope1, scope2],
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+            Scope = $"{scope1} {scope2}",
+        });
 
         var result = await _authenticator.PerformAuthorizationRequest(
-            clientId: clientId,
+            clientId: client.ClientId,
             redirectUri: redirectUri,
             state: state,
             scope: scope2,
@@ -278,22 +256,20 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task TwoScopes_RequestBothScopes_Returns200(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string responseType,
         string state,
         string scope1,
         string scope2)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            [scope1, scope2],
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+            Scope = $"{scope1} {scope2}",
+        });
 
         var result = await _authenticator.PerformAuthorizationRequest(
-            clientId: clientId,
+            clientId: client.ClientId,
             redirectUri: redirectUri,
             state: state,
             scope: [scope2, scope1],
@@ -307,8 +283,6 @@ public sealed class AuthenticateTests(
 
     [Theory, AutoData]
     public async Task TwoScopes_ValidAndInvalid_Returns400(
-        string clientId,
-        string clientSecret,
         Uri redirectUri,
         string responseType,
         string state,
@@ -316,14 +290,14 @@ public sealed class AuthenticateTests(
         string scope2,
         string invalidScope)
     {
-        _clientRepository.AddClient(
-            clientId,
-            clientSecret,
-            [scope1, scope2],
-            redirectUri);
+        var client = await _authenticator.RegisterClient(RegisterRequest.Valid with
+        {
+            RedirectUris = [redirectUri],
+            Scope = $"{scope1} {scope2}",
+        });
 
         var result = await _authenticator.PerformAuthorizationRequest(
-            clientId: clientId,
+            clientId: client.ClientId,
             redirectUri: redirectUri,
             state: state,
             scope: [scope2, invalidScope],

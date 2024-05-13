@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using FluentAssertions.Execution;
+﻿using FluentAssertions.Execution;
 
 namespace AuthorizationServer.Tests;
 
@@ -8,8 +7,7 @@ public sealed class RegisterTests(
     : IClassFixture<CustomAuthorizationServiceFactory>
 {
     private readonly Authenticator _authenticator = new(
-        authorizationServiceFactory.CreateDefaultClient(),
-        authorizationServiceFactory.ClientRepository);
+        authorizationServiceFactory.CreateDefaultClient());
 
     [Fact]
     public async Task HappyPath_Returns200()
@@ -208,6 +206,23 @@ public sealed class RegisterTests(
             .BeEquivalentTo(redirectUris);
     }
 
+    [Theory, AutoData]
+    public async Task Scope_Valid_IsSendBack(
+        string scope)
+    {
+        var result = await _authenticator
+            .PerformRegisterRequest(RegisterRequest.Valid with
+            {
+                Scope = scope,
+            });
+
+        var json = await result.GetJsonAsync<RegisterResponse>();
+
+        json.Scope
+            .Should()
+            .BeEquivalentTo(scope);
+    }
+
     public static TheoryData<BlahBlahCombination> ValidCombinations => new()
     {
         new() { GrantTypes = [], ResponseTypes = [] },
@@ -296,21 +311,5 @@ public sealed class RegisterTests(
         public required string[] GrantTypes { get; init; }
 
         public required string[] ResponseTypes { get; init; }
-    }
-
-    public sealed record RegisterResponse
-    {
-        [JsonPropertyName("client_id")] public string ClientId { get; init; } = null!;
-
-        [JsonPropertyName("client_secret")] public string ClientSecret { get; init; } = null!;
-
-        [JsonPropertyName("grant_types")] public string[] GrantTypes { get; init; } = [];
-
-        [JsonPropertyName("response_types")] public string[] ResponseTypes { get; init; } = [];
-
-        [JsonPropertyName("token_endpoint_auth_method")]
-        public string TokenEndpointAuthMethod { get; init; } = null!;
-
-        [JsonPropertyName("redirect_uris")] public Uri[] RedirectUris { get; init; } = [];
     }
 }
