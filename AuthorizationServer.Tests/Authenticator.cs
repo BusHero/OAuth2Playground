@@ -284,19 +284,20 @@ internal sealed class Authenticator(
 
 public sealed record RegisterRequest
 {
-    [JsonPropertyName("token_endpoint_auth_method")]
-    public string? TokenEndpointAuthMethod { get; init; }
-
-    [JsonPropertyName("grant_types")] 
-    public required string[] GrantTypes { get; init; }
-
-    [JsonPropertyName("response_types")] 
-    public required string[] ResponseTypes { get; init; }
-
     public static RegisterRequest Valid { get; } = new()
     {
         TokenEndpointAuthMethod = "secret_basic",
         GrantTypes = [],
         ResponseTypes = [],
+        RedirectUris = [new Uri("http://example.com")],
     };
+
+    [JsonPropertyName("token_endpoint_auth_method")]
+    public string? TokenEndpointAuthMethod { get; init; }
+
+    [JsonPropertyName("grant_types")] public required string[] GrantTypes { get; init; }
+
+    [JsonPropertyName("response_types")] public required string[] ResponseTypes { get; init; }
+
+    [JsonPropertyName("redirect_uris")] public required Uri[] RedirectUris { get; init; }
 }

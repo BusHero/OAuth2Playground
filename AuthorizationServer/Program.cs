@@ -120,21 +120,30 @@ app.MapPost("/register", (
     grantTypes.Add("authorization_code");
     responseTypes.Add("code");
 
-    if (grantTypes.All(validGrantTypes.Contains) && responseTypes.All(validResponseTypes.Contains))
+    if (!grantTypes.All(validGrantTypes.Contains) || !responseTypes.All(validResponseTypes.Contains))
     {
-        return Results.Ok(new Dictionary<string, object>
+        return Results.BadRequest(new Dictionary<string, string>
         {
-            ["client_id"] = Guid.NewGuid(),
-            ["client_secret"] = Guid.NewGuid(),
-            ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
-            ["grant_types"] = grantTypes.ToArray(),
-            ["response_types"] = responseTypes.ToArray(),
+            ["error"] = "invalid_client_metadata",
         });
     }
 
-    return Results.BadRequest(new Dictionary<string, string>
+    if (data.RedirectUris is { Length: 0 })
     {
-        ["error"] = "invalid_client_metadata",
+        return Results.BadRequest(new Dictionary<string, string>
+        {
+            ["error"] = "invalid_redirect_uri",
+        });
+    }
+
+    return Results.Ok(new Dictionary<string, object>
+    {
+        ["client_id"] = Guid.NewGuid(),
+        ["client_secret"] = Guid.NewGuid(),
+        ["token_endpoint_auth_method"] = tokenEndpointAuthMethod,
+        ["grant_types"] = grantTypes.ToArray(),
+        ["response_types"] = responseTypes.ToArray(),
+        ["redirect_uris"] = data.RedirectUris,
     });
 });
 
@@ -242,7 +251,7 @@ bool AreScopesValid(AuthorizeRequest authorizeRequest, Client client1)
 
 public sealed partial class Program;
 
-public sealed record RegisterData
+internal sealed record RegisterData
 {
     [JsonPropertyName("token_endpoint_auth_method")]
     public string? TokenEndpointAuthMethod { get; init; }
@@ -250,4 +259,6 @@ public sealed record RegisterData
     [JsonPropertyName("grant_types")] public string[] GrantTypes { get; init; } = [];
 
     [JsonPropertyName("response_types")] public string[] ResponseTypes { get; init; } = [];
+
+    [JsonPropertyName("redirect_uris")] public string[] RedirectUris { get; init; } = [];
 }

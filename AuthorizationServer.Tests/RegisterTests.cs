@@ -158,6 +158,56 @@ public sealed class RegisterTests(
         }
     }
 
+    [Fact]
+    public async Task RedirectUris_Missing_Returns400()
+    {
+        var result = await _authenticator
+            .PerformRegisterRequest(RegisterRequest.Valid with
+            {
+                RedirectUris = [],
+            });
+
+        result
+            .StatusCode
+            .Should()
+            .Be(400);
+    }
+
+    [Fact]
+    public async Task RedirectUris_Missing_ReturnsExpectedErrorMessage()
+    {
+        var result = await _authenticator
+            .PerformRegisterRequest(RegisterRequest.Valid with
+            {
+                RedirectUris = [],
+            });
+
+        var json = await result.GetJsonAsync<Dictionary<string, string>>();
+
+        json.Should()
+            .ContainKey("error")
+            .WhoseValue
+            .Should()
+            .Be("invalid_redirect_uri");
+    }
+
+    [Theory, AutoData]
+    public async Task RedirectUri_Valid_RedirectUrisAreReturned(
+        Uri[] redirectUris)
+    {
+        var result = await _authenticator
+            .PerformRegisterRequest(RegisterRequest.Valid with
+            {
+                RedirectUris = redirectUris,
+            });
+
+        var json = await result.GetJsonAsync<RegisterResponse>();
+
+        json.RedirectUris
+            .Should()
+            .BeEquivalentTo(redirectUris);
+    }
+
     public static TheoryData<BlahBlahCombination> ValidCombinations => new()
     {
         new() { GrantTypes = [], ResponseTypes = [] },
@@ -250,15 +300,17 @@ public sealed class RegisterTests(
 
     public sealed record RegisterResponse
     {
-        [JsonPropertyName("client_id")] public required string ClientId { get; init; }
+        [JsonPropertyName("client_id")] public string ClientId { get; init; } = null!;
 
-        [JsonPropertyName("client_secret")] public required string ClientSecret { get; init; }
+        [JsonPropertyName("client_secret")] public string ClientSecret { get; init; } = null!;
 
-        [JsonPropertyName("grant_types")] public required string[] GrantTypes { get; init; }
+        [JsonPropertyName("grant_types")] public string[] GrantTypes { get; init; } = [];
 
-        [JsonPropertyName("response_types")] public required string[] ResponseTypes { get; init; }
+        [JsonPropertyName("response_types")] public string[] ResponseTypes { get; init; } = [];
 
         [JsonPropertyName("token_endpoint_auth_method")]
-        public required string TokenEndpointAuthMethod { get; init; }
+        public string TokenEndpointAuthMethod { get; init; } = null!;
+
+        [JsonPropertyName("redirect_uris")] public Uri[] RedirectUris { get; init; } = [];
     }
 }
