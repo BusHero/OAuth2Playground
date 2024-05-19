@@ -136,6 +136,7 @@ internal sealed class Authenticator(
     {
         var result = await PerformApproveRequest(new Dictionary<string, string>
         {
+            ["Code"] = requestId,
             ["reqId"] = requestId,
             ["approve"] = "approve",
         });
@@ -143,6 +144,27 @@ internal sealed class Authenticator(
         return result;
     }
 
+    public async Task<IFlurlResponse> PerformApproveRequest(
+        AntiForgeryTokenResponse response,
+        string requestId,
+        string approve)
+    {
+        var result = await _authClient
+            .Request()
+            .AllowAnyHttpStatus()
+            .WithAutoRedirect(false)
+            .AppendPathSegment("approve")
+            .WithCookie(response.CookieName, response.CookieValue)
+            .PostUrlEncodedAsync(new Dictionary<string, string?>
+            {
+                [response.FormFieldName] = response.FormFieldValue,
+                ["reqId"] = requestId,
+                ["approve"] = approve,
+            });
+
+        return result;
+    }
+    
     public async Task<IFlurlResponse> PerformApproveRequest(
         IReadOnlyDictionary<string, string> data)
     {

@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using AuthorizationServer;
 using Microsoft.AspNetCore.Mvc;
 using FluentValidation;
+using Microsoft.AspNetCore.Antiforgery;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,14 +11,22 @@ builder.Services.AddSingleton<IClientRepository, InMemoryClientRepository>();
 builder.Services.AddTransient<IValidator<Request>, RequestValidator>();
 builder.Services.AddSingleton<InMemoryRequestsRepository>();
 builder.Services.AddSingleton<InMemoryCodeRepository>();
+builder.Services.AddAntiforgery(x =>
+{
+    x.FormFieldName = "AntiForgeryTokenField";
+    x.Cookie.Name = "AntiForgeryTokenCookie";
+});
 
 var app = builder.Build();
 
 app.UseHttpsRedirection();
+app.UseAntiforgery();
 
 app.MapGet("/authorize", (
+    HttpContext context,
     [FromServices] IClientRepository clientRepository,
     [FromServices] InMemoryRequestsRepository requestsRepository,
+    [FromServices] IAntiforgery antiForgeryService,
     [AsParameters] AuthorizeRequest request) =>
 {
     var client = clientRepository.FindClientById(request.ClientId);
@@ -26,15 +35,14 @@ app.MapGet("/authorize", (
         return Results.BadRequest();
     }
 
-    var code = Guid
-        .NewGuid()
-        .ToString();
+    var token = antiForgeryService.GetAndStoreTokens(context);
+    var code = token.RequestToken!;
 
     if (!AreScopesValid(request, client))
     {
         return Results.BadRequest();
     }
-    
+
     requestsRepository.Add(
         code,
         client.ClientId,
@@ -42,10 +50,20 @@ app.MapGet("/authorize", (
         request.ResponseType,
         request.State);
 
-    return Results.Ok(new
-    {
-        Code = code
-    });
+    var html =
+        $"""
+         <html>
+             <body>
+                 <form action="/handle-form" method="POST">
+                     <input name="{token.FormFieldName}" type="hidden" value="{token.RequestToken}">
+                     <input type="text" name="comment" value="value">
+                     <input type="submit">
+                 </form>
+             </body
+         </html>
+         """;
+
+    return Results.Content(html, "text/html");
 });
 
 app.MapPost("/approve", (
@@ -94,7 +112,6 @@ app.MapPost("/approve", (
 
         return Results.Redirect(uri);
     })
-    .DisableAntiforgery()
     .AddEndpointFilter<ValidationFilter<Request>>();
 
 app.MapPost("/register", (
@@ -244,6 +261,27 @@ app.MapPost("/token", async (
         });
     })
     .DisableAntiforgery();
+
+app.MapGet("/example", (HttpContext context, IAntiforgery antiforgery) =>
+{
+    var token = antiforgery.GetAndStoreTokens(context);
+    var html =
+        $"""
+         <html>
+             <body>
+                 <form action="/handle-form" method="POST">
+                     <input name="{token.FormFieldName}" type="hidden" value="{token.RequestToken}">
+                     <input type="text" name="comment" value="value">
+                     <input type="submit">
+                 </form>
+             </body
+         </html>
+         """;
+
+    return Results.Content(html, "text/html");
+});
+
+app.MapPost("/handle-form", ([FromForm] string comment) => Results.Ok("Ok"));
 
 app.Run();
 

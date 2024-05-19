@@ -80,13 +80,18 @@ public sealed class ApproveTests
             RedirectUris = [redirectUri],
         });
         
-        var requestId = await _authenticator.GetRequestId(
-            client.ClientId,
-            redirectUri,
-            state);
+        var response = await _authenticator.PerformAuthorizationRequest(
+            clientId: client.ClientId,
+            redirectUri: redirectUri,
+            state: state,
+            scope: default(string),
+            responseType: "code");
+
+        var token = await AntiForgeryTokenExtractor
+            .ExtractAntiForgeryValues(response.ResponseMessage);
 
         var result = await _authenticator
-            .PerformApproveRequest(requestId);
+            .PerformApproveRequest(token, token.FormFieldValue, "approve");
 
         result
             .ResponseMessage
