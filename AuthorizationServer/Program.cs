@@ -2,13 +2,11 @@ using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
 using AuthorizationServer;
 using Microsoft.AspNetCore.Mvc;
-using FluentValidation;
 using Microsoft.AspNetCore.Antiforgery;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<IClientRepository, InMemoryClientRepository>();
-builder.Services.AddTransient<IValidator<Request>, RequestValidator>();
 builder.Services.AddSingleton<InMemoryRequestsRepository>();
 builder.Services.AddSingleton<InMemoryCodeRepository>();
 builder.Services.AddAntiforgery(x =>
@@ -66,53 +64,56 @@ app.MapGet("/authorize", (
     return Results.Content(html, "text/html");
 });
 
-app.MapPost("/approve", (
-        [AsParameters] Request input,
-        [FromServices] InMemoryRequestsRepository requestRepository,
-        [FromServices] InMemoryCodeRepository codesRepository) =>
+app.MapPost("/approve", async (
+    [FromForm(Name = "approve")] string? approve,
+    [FromServices] InMemoryRequestsRepository requestRepository,
+    [FromServices] InMemoryCodeRepository codesRepository,
+    HttpContext context) =>
+{
+    var form = await context.Request.ReadFormAsync();
+    var token = form["AntiForgeryTokenField"];
+
+    var request = requestRepository.GetAndRemoveRequest(token.ToString());
+    if (request is null)
     {
-        var request = requestRepository.GetAndRemoveRequest(input.RequestId);
-        if (request is null)
+        return Results.ValidationProblem(new Dictionary<string, string[]>
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["reqId"] = ["Unknown requestId"]
-            });
-        }
+            ["reqId"] = ["Unknown requestId"]
+        });
+    }
 
-        if (input.Approve is null)
+    if (approve is null)
+    {
+        var foo = new UriBuilder(request.RedirectUri)
         {
-            var foo = new UriBuilder(request.RedirectUri)
-            {
-                Query = "error=access_denied",
-            }.Uri.ToString();
-
-            return Results.Redirect(foo);
-        }
-
-        if (request.ResponseType is not "code")
-        {
-            var foo = new UriBuilder(request.RedirectUri)
-            {
-                Query = "error=unsupported_response_type",
-            }.Uri.ToString();
-
-            return Results.Redirect(foo);
-        }
-
-        var code = Guid.NewGuid().ToString();
-        codesRepository.Add(
-            code: code,
-            clientId: request.ClientId);
-
-        var uri = new UriBuilder(request.RedirectUri)
-        {
-            Query = $"code={code}&state={request.State}"
+            Query = "error=access_denied",
         }.Uri.ToString();
 
-        return Results.Redirect(uri);
-    })
-    .AddEndpointFilter<ValidationFilter<Request>>();
+        return Results.Redirect(foo);
+    }
+
+    if (request.ResponseType is not "code")
+    {
+        var foo = new UriBuilder(request.RedirectUri)
+        {
+            Query = "error=unsupported_response_type",
+        }.Uri.ToString();
+
+        return Results.Redirect(foo);
+    }
+
+    var code = Guid.NewGuid().ToString();
+    codesRepository.Add(
+        code: code,
+        clientId: request.ClientId);
+
+    var uri = new UriBuilder(request.RedirectUri)
+    {
+        Query = $"code={code}&state={request.State}"
+    }.Uri.ToString();
+
+    return Results.Redirect(uri);
+});
 
 app.MapPost("/register", (
     [FromBody] RegisterData data,

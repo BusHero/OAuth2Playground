@@ -146,7 +146,6 @@ internal sealed class Authenticator(
 
     public async Task<IFlurlResponse> PerformApproveRequest(
         AntiForgeryTokenResponse response,
-        string requestId,
         string approve)
     {
         var result = await _authClient
@@ -158,7 +157,6 @@ internal sealed class Authenticator(
             .PostUrlEncodedAsync(new Dictionary<string, string?>
             {
                 [response.FormFieldName] = response.FormFieldValue,
-                ["reqId"] = requestId,
                 ["approve"] = approve,
             });
 

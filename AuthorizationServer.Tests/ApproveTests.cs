@@ -91,7 +91,7 @@ public sealed class ApproveTests
             .ExtractAntiForgeryValues(response.ResponseMessage);
 
         var result = await _authenticator
-            .PerformApproveRequest(token, token.FormFieldValue, "approve");
+            .PerformApproveRequest(token, "approve");
 
         result
             .ResponseMessage
