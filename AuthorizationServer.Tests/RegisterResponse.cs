@@ -8,14 +8,14 @@ public sealed record RegisterResponse
 
     [JsonPropertyName("client_secret")] public string ClientSecret { get; init; } = null!;
 
-    [JsonPropertyName("grant_types")] public string[] GrantTypes { get; init; } = [];
+    [JsonPropertyName("grant_types")] public IReadOnlyCollection<string> GrantTypes { get; init; } = [];
 
-    [JsonPropertyName("response_types")] public string[] ResponseTypes { get; init; } = [];
+    [JsonPropertyName("response_types")] public IReadOnlyCollection<string> ResponseTypes { get; init; } = [];
 
     [JsonPropertyName("token_endpoint_auth_method")]
     public string TokenEndpointAuthMethod { get; init; } = null!;
 
-    [JsonPropertyName("redirect_uris")] public Uri[] RedirectUris { get; init; } = [];
+    [JsonPropertyName("redirect_uris")] public IReadOnlyCollection<Uri> RedirectUris { get; init; } = [];
 
     [JsonPropertyName("scope")] public string Scope { get; init; } = null!;
 }

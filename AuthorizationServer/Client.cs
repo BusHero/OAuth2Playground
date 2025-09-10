@@ -8,5 +8,5 @@ public sealed class Client
 
     public required Uri[] RedirectUris { get; init; }
     
-    public IReadOnlyCollection<string> Scopes { get; init; }
+    public required IReadOnlyCollection<string> Scopes { get; init; }
 }

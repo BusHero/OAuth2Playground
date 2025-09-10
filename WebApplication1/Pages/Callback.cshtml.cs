@@ -9,7 +9,7 @@ namespace WebApplication1.Pages;
 public class Callback : PageModel
 {
     public string Code { get; set; } = null!;
-    
+
     public string State { get; set; } = null!;
 
     public string AccessToken { get; set; } = null!;
@@ -17,7 +17,7 @@ public class Callback : PageModel
     public string TokenType { get; set; } = null!;
 
     public string RefreshToken { get; set; } = null!;
-    
+
     public string Body { get; set; } = null!;
 
     public async Task OnGet(
@@ -30,20 +30,21 @@ public class Callback : PageModel
 
         if (state != state2)
         {
-            throw new Exception($"state is not right gotten: {state} vs stored: {state2}");
+            throw new InvalidOperationException($"state is not right gotten: {state} vs stored: {state2}");
         }
 
         Code = code;
         State = state;
 
+        using var body = new FormUrlEncodedContent([
+            new KeyValuePair<string, string>("grant_type", "authorization_code"),
+            new KeyValuePair<string, string>("code", code),
+            new KeyValuePair<string, string>("redirect_uri", Client.RedirectUri),
+        ]);
         var result = await "http://localhost:9001"
             .AppendPathSegment("token")
             .WithBasicAuth(Client.ClientId, Client.ClientSecret)
-            .PostAsync(new FormUrlEncodedContent([
-                new KeyValuePair<string, string>("grant_type", "authorization_code"),
-                new KeyValuePair<string, string>("code", code),
-                new KeyValuePair<string, string>("redirect_uri", Client.RedirectUri),
-            ]));
+            .PostAsync(body);
         Body = await result.GetStringAsync();
 
         var response = await result.GetJsonAsync<AuthSomething>();
@@ -57,7 +58,7 @@ public class Callback : PageModel
     }
 
 
-    internal class AuthSomething
+    internal sealed class AuthSomething
     {
         [JsonPropertyName("access_token")] public string AccessToken { get; set; } = null!;
 

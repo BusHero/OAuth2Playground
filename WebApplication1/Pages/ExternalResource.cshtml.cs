@@ -18,14 +18,14 @@ public class ExternalResource : PageModel
         var token = HttpContext.Session.GetString("token");
         if (string.IsNullOrEmpty(token))
         {
-            throw new Exception();
+            throw new InvalidOperationException();
         }
 
         try
         {
             return await GetResult(token);
         }
-        catch (FlurlHttpException e)
+        catch (FlurlHttpException)
         {
             var newToken = await GetNewToken();
             HttpContext.Session.SetString("token", newToken);
@@ -38,24 +38,25 @@ public class ExternalResource : PageModel
         var refreshToken = HttpContext.Session.GetString("refresh_token");
         if (string.IsNullOrEmpty(refreshToken))
         {
-            throw new Exception();
+            throw new InvalidOperationException();
         }
+        using var body = new FormUrlEncodedContent([
+            new KeyValuePair<string, string>("grant_type", "refresh_token"),
+            new KeyValuePair<string, string>("refresh_token", refreshToken),
+            new KeyValuePair<string, string>("redirect_uri", Client.RedirectUri),
+        ]);
         var result = await "http://localhost:9001"
             .AppendPathSegment("token")
             .WithBasicAuth(Client.ClientId, Client.ClientSecret)
-            .PostAsync(new FormUrlEncodedContent([
-                new KeyValuePair<string, string>("grant_type", "refresh_token"),
-                new KeyValuePair<string, string>("refresh_token", refreshToken),
-                new KeyValuePair<string, string>("redirect_uri", Client.RedirectUri),
-            ]));
-        
+            .PostAsync(body);
+
         var response = await result.GetJsonAsync<Callback.AuthSomething>();
 
         return response.AccessToken;
     }
 
 
-    private async Task<string> GetResult(string token)
+    private static async Task<string> GetResult(string token)
     {
         var result = await "http://localhost:9002"
             .AppendPathSegment("resource")

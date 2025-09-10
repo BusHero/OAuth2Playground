@@ -1,6 +1,6 @@
 ﻿namespace AuthorizationServer;
 
-internal sealed class InMemoryCodeRepository
+public sealed class InMemoryCodeRepository
 {
     private readonly Dictionary<string, string> _codes = [];
 

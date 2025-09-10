@@ -1,7 +1,8 @@
 ﻿namespace WebApplication2;
 
-internal sealed class TokenExtractor(ILogger<TokenExtractor> logger)
+internal sealed class TokenExtractor
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "<Pending>")]
     public async Task<string?> GetBearerToken(HttpContext context)
     {
         return context.Request switch

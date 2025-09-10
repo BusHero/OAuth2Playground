@@ -26,7 +26,7 @@ public sealed class ResourceTests(
             .AllowAnyHttpStatus()
             .AppendPathSegment("resource2")
             .WithOAuthBearerToken(token)
-            .GetAsync();
+            .GetAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         result
             .StatusCode
@@ -43,7 +43,7 @@ public sealed class ResourceTests(
             .AllowAnyHttpStatus()
             .AppendPathSegment("resource2")
             .WithHeader("Authorization", authValue)
-            .GetAsync();
+            .GetAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         result
             .StatusCode
@@ -58,7 +58,7 @@ public sealed class ResourceTests(
             .Request()
             .AllowAnyHttpStatus()
             .AppendPathSegment("resource2")
-            .GetAsync();
+            .GetAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         result
             .StatusCode
@@ -75,7 +75,7 @@ public sealed class ResourceTests(
             .AllowAnyHttpStatus()
             .AppendPathSegment("resource2")
             .WithOAuthBearerToken(token)
-            .GetAsync();
+            .GetAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         result
             .StatusCode

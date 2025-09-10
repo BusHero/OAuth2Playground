@@ -11,7 +11,7 @@ app.UseHttpsRedirection();
 
 app.MapGet("/callback", () =>
 {
-    app.Logger.LogInformation("Hi there");
+    app.Logger.LogInformation("{MSG}", "Hi there");
     return "Hello";
 });
 

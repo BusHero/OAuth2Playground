@@ -2,9 +2,9 @@
 
 namespace AuthorizationServer.Tests;
 
-public class AntiForgeryTokenTests(
+public sealed class AntiForgeryTokenTests(
     CustomAuthorizationServiceFactory authorizationServiceFactory)
-    : IClassFixture<CustomAuthorizationServiceFactory>
+    : IClassFixture<CustomAuthorizationServiceFactory>, IDisposable
 {
     private readonly FlurlClient _client = new FlurlClient(authorizationServiceFactory.CreateDefaultClient());
 
@@ -15,7 +15,7 @@ public class AntiForgeryTokenTests(
             .Request()
             .AllowAnyHttpStatus()
             .AppendPathSegment("example")
-            .GetAsync();
+            .GetAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         var token = await AntiForgeryTokenExtractor
             .ExtractAntiForgeryValues(result.ResponseMessage);
@@ -35,11 +35,16 @@ public class AntiForgeryTokenTests(
             .AllowAnyHttpStatus()
             .AppendPathSegment("handle-form")
             .WithCookie(token.CookieName, token.CookieValue)
-            .PostUrlEncodedAsync(data);
+            .PostUrlEncodedAsync(data, cancellationToken: TestContext.Current.CancellationToken);
 
         result2
             .StatusCode
             .Should()
             .Be(200);
+    }
+
+    public void Dispose()
+    {
+        _client.Dispose();
     }
 }

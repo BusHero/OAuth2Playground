@@ -90,8 +90,8 @@ public sealed class Program
 
         var signature = Convert
             .ToBase64String(verified)
-            .Replace("/", "_")
-            .Replace("=", "");
+            .Replace("/", "_", StringComparison.InvariantCulture)
+            .Replace("=", "", StringComparison.InvariantCulture);
 
         if (signature != parts[2])
         {
@@ -108,7 +108,7 @@ public sealed class Program
             return false;
         }
 
-        if (!payload.GetProperty("aud").GetString()!.Contains("http://localhost:9002"))
+        if (!payload.GetProperty("aud").GetString()!.Contains("http://localhost:9002", StringComparison.InvariantCulture))
         {
             return false;
         }

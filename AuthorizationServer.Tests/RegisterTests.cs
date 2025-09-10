@@ -225,68 +225,68 @@ public sealed class RegisterTests(
 
     public static TheoryData<BlahBlahCombination> ValidCombinations => new()
     {
-        new() { GrantTypes = [], ResponseTypes = [] },
-        new() { GrantTypes = [], ResponseTypes = ["code"] },
-        new() { GrantTypes = ["authorization_code"], ResponseTypes = [] },
-        new() { GrantTypes = ["authorization_code"], ResponseTypes = ["code"] },
-        new() { GrantTypes = ["refresh_token"], ResponseTypes = [] },
-        new() { GrantTypes = ["refresh_token"], ResponseTypes = ["code"] },
-        new() { GrantTypes = ["authorization_code", "refresh_token"], ResponseTypes = [] },
-        new() { GrantTypes = ["authorization_code", "refresh_token"], ResponseTypes = ["code"] },
+        new BlahBlahCombination() { GrantTypes = [], ResponseTypes = [] },
+        new BlahBlahCombination() { GrantTypes = [], ResponseTypes = ["code"] },
+        new BlahBlahCombination() { GrantTypes = ["authorization_code"], ResponseTypes = [] },
+        new BlahBlahCombination() { GrantTypes = ["authorization_code"], ResponseTypes = ["code"] },
+        new BlahBlahCombination() { GrantTypes = ["refresh_token"], ResponseTypes = [] },
+        new BlahBlahCombination() { GrantTypes = ["refresh_token"], ResponseTypes = ["code"] },
+        new BlahBlahCombination() { GrantTypes = ["authorization_code", "refresh_token"], ResponseTypes = [] },
+        new BlahBlahCombination() { GrantTypes = ["authorization_code", "refresh_token"], ResponseTypes = ["code"] },
     };
 
     public static TheoryData<ReturnBackCombination> ReturnBackCombinations => new()
     {
-        new()
+        new ReturnBackCombination()
         {
             InputGrantTypes = [],
             InputResponseTypes = [],
             OutputGrantTypes = ["authorization_code"],
             OutputResponseTypes = ["code"],
         },
-        new()
+        new ReturnBackCombination()
         {
             InputGrantTypes = [],
             InputResponseTypes = ["code"],
             OutputGrantTypes = ["authorization_code"],
             OutputResponseTypes = ["code"],
         },
-        new()
+        new ReturnBackCombination()
         {
             InputGrantTypes = ["authorization_code"],
             InputResponseTypes = [],
             OutputGrantTypes = ["authorization_code"],
             OutputResponseTypes = ["code"],
         },
-        new()
+        new ReturnBackCombination()
         {
             InputGrantTypes = ["authorization_code"],
             InputResponseTypes = ["code"],
             OutputGrantTypes = ["authorization_code"],
             OutputResponseTypes = ["code"],
         },
-        new()
+        new ReturnBackCombination()
         {
             InputGrantTypes = ["refresh_token"],
             InputResponseTypes = [],
             OutputGrantTypes = ["authorization_code", "refresh_token"],
             OutputResponseTypes = ["code"],
         },
-        new()
+        new ReturnBackCombination()
         {
             InputGrantTypes = ["refresh_token"],
             InputResponseTypes = ["code"],
             OutputGrantTypes = ["authorization_code", "refresh_token"],
             OutputResponseTypes = ["code"],
         },
-        new()
+        new ReturnBackCombination()
         {
             InputGrantTypes = ["authorization_code", "refresh_token"],
             InputResponseTypes = [],
             OutputGrantTypes = ["authorization_code", "refresh_token"],
             OutputResponseTypes = ["code"],
         },
-        new()
+        new ReturnBackCombination()
         {
             InputGrantTypes = ["authorization_code", "refresh_token"],
             InputResponseTypes = ["code"],

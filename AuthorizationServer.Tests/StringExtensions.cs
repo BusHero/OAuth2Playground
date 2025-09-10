@@ -9,6 +9,7 @@ public static class StringExtensions
     private static string ToBase64String(this byte[] bytes)
         => Convert.ToBase64String(bytes);
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1054:URI-like parameters should not be strings", Justification = "<Pending>")]
     public static Uri ToUri(this string uri) => new(uri);
 
     private static string ToBase64String(this string input) =>
@@ -46,8 +47,8 @@ public static class StringExtensions
                 secret.GetBytes(Encoding.ASCII),
                 $"{headerBase64}.{payloadBase64}".GetBytes(Encoding.ASCII))
             .ToBase64String()
-            .Replace("/", "_")
-            .Replace("=", "");
+            .Replace("/", "_", StringComparison.InvariantCulture)
+            .Replace("=", "", StringComparison.InvariantCulture);
 
         return $"{headerBase64}.{payloadBase64}.{signature}";
     }

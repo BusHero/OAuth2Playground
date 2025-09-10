@@ -24,11 +24,10 @@ public static class AntiForgeryTokenExtractor
         };
     }
 
-
     private static string ExtractAntiForgeryCookieValueFrom(HttpResponseMessage response)
     {
         var antiForgeryCookie = response.Headers.GetValues("Set-Cookie")
-            .FirstOrDefault(x => x.Contains(AntiForgeryCookieName));
+            .FirstOrDefault(x => x.Contains(AntiForgeryCookieName, StringComparison.InvariantCulture));
 
         if (antiForgeryCookie is null)
             throw new ArgumentException($"Cookie '{AntiForgeryCookieName}' not found in HTTP response",

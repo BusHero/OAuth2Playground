@@ -44,8 +44,8 @@ public static class StringExtensions
                 secret.GetBytes(Encoding.ASCII),
                 $"{headerBase64}.{payloadBase64}".GetBytes(Encoding.ASCII))
             .ToBase64String()
-            .Replace("/", "_")
-            .Replace("=", "");
+            .Replace("/", "_", StringComparison.InvariantCulture)
+            .Replace("=", "", StringComparison.InvariantCulture);
 
         return $"{headerBase64}.{payloadBase64}.{signature}";
     }

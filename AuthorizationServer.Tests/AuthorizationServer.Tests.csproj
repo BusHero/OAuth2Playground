@@ -1,33 +1,31 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
-    <IsTestProject>true</IsTestProject>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="AngleSharp" />
-    <PackageReference Include="AutoFixture.Xunit2" />
-    <PackageReference Include="FluentAssertions" />
-    <PackageReference Include="Flurl.Http" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="WireMock.Net" />
-    <PackageReference Include="WireMock.Net.FluentAssertions" />
-    <PackageReference Include="xunit" />
-    <PackageReference Include="xunit.runner.visualstudio">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Using Include="Xunit" />
-    <Using Include="FluentAssertions" />
-    <Using Include="AutoFixture.Xunit2" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\AuthorizationServer\AuthorizationServer.csproj" />
-    <ProjectReference Include="..\WebResource\WebResource.csproj" />
-  </ItemGroup>
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+		<UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+		<TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+		<TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
+		<OutputType>Exe</OutputType>
+		<NoWarn>$(NoWarn);CA1062;CA1001;CA1034;CA2234</NoWarn>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="AngleSharp" />
+		<PackageReference Include="AutoFixture.Xunit3" />
+		<PackageReference Include="FluentAssertions" />
+		<PackageReference Include="Flurl.Http" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="WireMock.Net" />
+		<PackageReference Include="WireMock.Net.FluentAssertions" />
+		<PackageReference Include="xunit.v3" />
+	</ItemGroup>
+	<ItemGroup>
+		<Using Include="Xunit" />
+		<Using Include="FluentAssertions" />
+		<Using Include="AutoFixture.Xunit3" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\AuthorizationServer\AuthorizationServer.csproj" />
+		<ProjectReference Include="..\WebResource\WebResource.csproj" />
+	</ItemGroup>
 </Project>

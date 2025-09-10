@@ -11,10 +11,12 @@ public static class Stuff
 
 
     private const string ClientId = "oauth-client-1";
+#pragma warning disable CA1823 // Avoid unused private fields
     private const string ClientSecret = "oauth-client-secret-1";
     private const string RedirectUri = "http://localhost:9000/callback";
     private const string AuthEndpoint = "http://localhost:9001/authorize";
     private const string TokenEndpoint = "http://localhost:9001/token";
+#pragma warning restore CA1823 // Avoid unused private fields
 
     private static async Task<string> DoStuff()
     {
@@ -23,7 +25,7 @@ public static class Stuff
         httpClient.BaseAddress = new Uri("http://localhost:9001");
 
         var result = await httpClient
-            .GetAsync($"/authorize?response_type=code&client_id={ClientId}&redirect_uri={RedirectUri}");
+            .GetAsync(new Uri($"/authorize?response_type=code&client_id={ClientId}&redirect_uri={RedirectUri}"));
 
         var response = await result.Content.ReadAsStringAsync();
         Debug.WriteLine(response);

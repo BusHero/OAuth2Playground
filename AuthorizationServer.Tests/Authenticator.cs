@@ -162,7 +162,7 @@ internal sealed class Authenticator(
 
         return result;
     }
-    
+
     public async Task<IFlurlResponse> PerformApproveRequest(
         IReadOnlyDictionary<string, string> data)
     {

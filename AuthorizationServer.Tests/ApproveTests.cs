@@ -3,7 +3,7 @@
 namespace AuthorizationServer.Tests;
 
 public sealed class ApproveTests
-    : IClassFixture<CustomAuthorizationServiceFactory>
+    : IClassFixture<CustomAuthorizationServiceFactory>, IDisposable
 {
     public ApproveTests(
         CustomAuthorizationServiceFactory authorizationServiceFactory)
@@ -289,11 +289,16 @@ public sealed class ApproveTests
             .AppendPathSegment("approve")
             .WithAutoRedirect(false)
             .AllowAnyHttpStatus()
-            .PostAsync();
+            .PostAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         result
             .StatusCode
             .Should()
             .Be(500);
+    }
+
+    public void Dispose()
+    {
+        _client.Dispose();
     }
 }

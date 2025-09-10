@@ -1,6 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
-using AutoFixture.Xunit2;
+using AutoFixture.Xunit3;
 using Microsoft.AspNetCore.Mvc.Testing;
 using WebApplication2;
 
@@ -21,7 +21,7 @@ public sealed class UnitTest1(WebApplicationFactory<Program> factory)
             = new AuthenticationHeaderValue("Bearer", token);
 
         var result = await _client
-            .PostAsync("/resource", null);
+            .PostAsync(new Uri("/resource"), null, cancellationToken: TestContext.Current.CancellationToken);
 
         result
             .StatusCode
@@ -33,7 +33,7 @@ public sealed class UnitTest1(WebApplicationFactory<Program> factory)
     public async Task NoAuthorization_Unauthorized()
     {
         var result = await _client
-            .PostAsync("/resource", null);
+            .PostAsync(new Uri("/resource"), null, TestContext.Current.CancellationToken);
 
         result
             .StatusCode
@@ -51,7 +51,7 @@ public sealed class UnitTest1(WebApplicationFactory<Program> factory)
             = new AuthenticationHeaderValue(scheme, token);
 
         var result = await _client
-            .PostAsync("/resource", null);
+            .PostAsync("/resource", null, TestContext.Current.CancellationToken);
 
         result
             .StatusCode
@@ -65,10 +65,10 @@ public sealed class UnitTest1(WebApplicationFactory<Program> factory)
         var token = GetValidPayload()
             .CreateHmac256SignedToken("secret");
 
-        var result = await _client
-            .PostAsync("/resource", new FormUrlEncodedContent([
+        using var body = new FormUrlEncodedContent([
                 new KeyValuePair<string, string>("access_token", token)
-            ]));
+            ]);
+        var result = await _client.PostAsync("/resource", body, TestContext.Current.CancellationToken);
 
         result
             .StatusCode
@@ -82,10 +82,11 @@ public sealed class UnitTest1(WebApplicationFactory<Program> factory)
         var token = GetValidPayload()
             .CreateHmac256SignedToken("secret");
 
+        using var content = new FormUrlEncodedContent([
+            new KeyValuePair<string, string>(otherName, token)
+        ]);
         var result = await _client
-            .PostAsync("/resource", new FormUrlEncodedContent([
-                new KeyValuePair<string, string>(otherName, token)
-            ]));
+            .PostAsync("/resource", content, TestContext.Current.CancellationToken);
 
         result
             .StatusCode
@@ -100,7 +101,7 @@ public sealed class UnitTest1(WebApplicationFactory<Program> factory)
             .CreateHmac256SignedToken("secret");
 
         var result = await _client
-            .PostAsync($"/resource?access_token={token}", null);
+            .PostAsync($"/resource?access_token={token}", null, TestContext.Current.CancellationToken);
 
         result
             .StatusCode
@@ -118,7 +119,7 @@ public sealed class UnitTest1(WebApplicationFactory<Program> factory)
             = new AuthenticationHeaderValue("Bearer", token);
 
         var result = await _client
-            .PostAsync("/resource", null);
+            .PostAsync("/resource", null, TestContext.Current.CancellationToken);
 
         result
             .StatusCode
@@ -143,7 +144,7 @@ public sealed class UnitTest1(WebApplicationFactory<Program> factory)
             = new AuthenticationHeaderValue("Bearer", token);
 
         var result = await _client
-            .PostAsync("/resource", null);
+            .PostAsync("/resource", null, TestContext.Current.CancellationToken);
 
         result
             .StatusCode
@@ -164,7 +165,7 @@ public sealed class UnitTest1(WebApplicationFactory<Program> factory)
             = new AuthenticationHeaderValue("Bearer", token);
 
         var result = await _client
-            .PostAsync("/resource", null);
+            .PostAsync("/resource", null, TestContext.Current.CancellationToken);
 
         result
             .StatusCode
@@ -185,7 +186,7 @@ public sealed class UnitTest1(WebApplicationFactory<Program> factory)
             = new AuthenticationHeaderValue("Bearer", token);
 
         var result = await _client
-            .PostAsync("/resource", null);
+            .PostAsync("/resource", null, TestContext.Current.CancellationToken);
 
         result
             .StatusCode
@@ -208,7 +209,7 @@ public sealed class UnitTest1(WebApplicationFactory<Program> factory)
             = new AuthenticationHeaderValue("Bearer", token);
 
         var result = await _client
-            .PostAsync("/resource", null);
+            .PostAsync("/resource", null, TestContext.Current.CancellationToken);
 
         result
             .StatusCode
@@ -228,7 +229,7 @@ public sealed class UnitTest1(WebApplicationFactory<Program> factory)
             = new AuthenticationHeaderValue("Bearer", token);
 
         var result = await _client
-            .PostAsync("/resource", null);
+            .PostAsync("/resource", null, TestContext.Current.CancellationToken);
 
         result
             .StatusCode

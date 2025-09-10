@@ -1,8 +1,8 @@
+using AuthorizationServer;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Headers;
 using System.Text.Json.Serialization;
-using AuthorizationServer;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Antiforgery;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,9 +68,10 @@ app.MapPost("/approve", async (
     [FromForm(Name = "approve")] string? approve,
     [FromServices] InMemoryRequestsRepository requestRepository,
     [FromServices] InMemoryCodeRepository codesRepository,
-    HttpContext context) =>
+    HttpContext context,
+    CancellationToken cancellationToken = default) =>
 {
-    var form = await context.Request.ReadFormAsync();
+    var form = await context.Request.ReadFormAsync(cancellationToken: cancellationToken);
     var token = form["AntiForgeryTokenField"];
 
     var request = requestRepository.GetAndRemoveRequest(token.ToString());

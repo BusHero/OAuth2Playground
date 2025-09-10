@@ -11,12 +11,12 @@ public sealed class HttpMockTests
     {
         using var server = WireMockServer.Start(8888);
 
-        var client = new HttpClient()
+        using var client = new HttpClient()
         {
             BaseAddress = new Uri("http://localhost:8888")
         };
 
-        var result = await client.GetAsync("hello");
+        var result = await client.GetAsync(new Uri("hello"), TestContext.Current.CancellationToken);
 
         result.StatusCode.Should().Be(HttpStatusCode.OK);
     }
@@ -26,12 +26,12 @@ public sealed class HttpMockTests
     {
         using var server = WireMockServer.Start(8888);
 
-        var client = new HttpClient()
+        using var client = new HttpClient()
         {
             BaseAddress = new Uri("http://localhost:8888")
         };
 
-        var result = await client.GetAsync("hello");
+        var result = await client.GetAsync(new Uri("hello"), TestContext.Current.CancellationToken);
 
         server.Should()
             .HaveReceivedACall()

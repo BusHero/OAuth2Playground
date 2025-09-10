@@ -50,12 +50,14 @@ public sealed class JwtTokenTests
                 Encoding.ASCII.GetBytes(secret),
                 Encoding.ASCII.GetBytes(dataToSign));
 
-        var signature = Convert.ToBase64String(encryptedData).Replace("/", "_").Replace("=", "");
+        var signature = Convert.ToBase64String(encryptedData)
+            .Replace("/", "_", StringComparison.InvariantCulture)
+            .Replace("=", "", StringComparison.InvariantCulture);
 
         return $"{headerBase64}.{payloadBase64}.{signature}";
     }
 
-    private string GetCredibleTokenImplementation(
+    private static string GetCredibleTokenImplementation(
         Dictionary<string, object> payload,
         string key)
     {
