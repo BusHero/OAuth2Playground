@@ -7,9 +7,9 @@ internal static class AuthorizeEndpoints
 {
     public static void RegisterAuthorizeEndpoints(this WebApplication app)
     {
-        app.MapGet("/authorize2", (HttpContext context) =>
+        app.MapPost("/connect/token", (HttpContext context) =>
         {
-            return Results.Ok();
+            return Results.BadRequest();
         });
 
         app.MapGet("/authorize", (

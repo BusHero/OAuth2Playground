@@ -6,7 +6,7 @@
 		<TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
 		<TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
 		<OutputType>Exe</OutputType>
-		<NoWarn>$(NoWarn);CA1062;CA1001;CA1034;CA2234</NoWarn>
+		<NoWarn>$(NoWarn);CA1062;CA1001;CA1034;CA2234;CA1515</NoWarn>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="AngleSharp" />
@@ -27,6 +27,7 @@
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\AuthorizationServer\AuthorizationServer.csproj" />
+		<ProjectReference Include="..\IdentityServerHost\IdentityServerHost.csproj" />
 		<ProjectReference Include="..\WebResource\WebResource.csproj" />
 	</ItemGroup>
 </Project>

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace AuthorizationServer.Tests;
+namespace AuthorizationServer.Tests.Flows;
 
 internal sealed record TokenResponse
 {

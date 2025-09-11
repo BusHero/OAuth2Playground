@@ -26,7 +26,6 @@ public sealed partial class Program
         app.UseHttpsRedirection();
         app.UseAntiforgery();
 
-        app.MapGet("/token", () => "Hello, World!");
         app.RegisterAuthorizeEndpoints();
 
         app.MapPost("/approve", async (
