@@ -5,6 +5,8 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace AuthorizationServer.Tests.Flows.ClientCredentials;
 
@@ -214,7 +216,7 @@ public abstract class ClientCredentialsFlowTestsBase(HttpClient client)
     }
 
     [Theory, AutoData]
-    public async Task InvalidAuthenticationScheme(string invalidAuthenticationScheme)
+    public async Task InvalidAuthenticationSchemeReturnsBadRequest(string invalidAuthenticationScheme)
     {
         using var body = new FormUrlEncodedContent([
             new KeyValuePair<string, string>("grant_type", GRANT_TYPE),
@@ -224,6 +226,44 @@ public abstract class ClientCredentialsFlowTestsBase(HttpClient client)
         {
             Method = HttpMethod.Post,
             Content = body,
+            RequestUri = tokenUri,
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            invalidAuthenticationScheme,
+            Convert.ToBase64String(
+                Encoding.UTF8.GetBytes($"{VALID_CLIENT_ID}:{VALID_SECRET}")));
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Theory, AutoData]
+    public async Task NoFieldsInBodyReturnsBadRequest(string invalidAuthenticationScheme)
+    {
+        using var body = new FormUrlEncodedContent([]);
+        using var request = new HttpRequestMessage
+        {
+            Method = HttpMethod.Post,
+            Content = body,
+            RequestUri = tokenUri,
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            invalidAuthenticationScheme,
+            Convert.ToBase64String(
+                Encoding.UTF8.GetBytes($"{VALID_CLIENT_ID}:{VALID_SECRET}")));
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Theory, AutoData]
+    public async Task NonFormDataReturnsBadRequest(string invalidAuthenticationScheme)
+    {
+        var body = JsonSerializer.Serialize(new { grant_type = GRANT_TYPE, scope = VALID_SCOPE_1, });
+        using var request = new HttpRequestMessage
+        {
+            Method = HttpMethod.Post,
+            Content = new StringContent(body),
             RequestUri = tokenUri,
         };
         request.Headers.Authorization = new AuthenticationHeaderValue(

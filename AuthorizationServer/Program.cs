@@ -26,7 +26,19 @@ public sealed partial class Program
         app.UseHttpsRedirection();
         app.UseAntiforgery();
 
+        app.Use(async (context, next) =>
+        {
+            await next();
+
+            if (context.Response.StatusCode == StatusCodes.Status415UnsupportedMediaType)
+            {
+                // Replace 415 with 400
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            }
+        });
+
         app.RegisterAuthorizeEndpoints();
+        app.RegisterTokenEndpoints();
 
         app.MapPost("/approve", async (
             [FromForm(Name = "approve")] string? approve,

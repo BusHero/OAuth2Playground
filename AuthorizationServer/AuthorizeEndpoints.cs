@@ -7,11 +7,6 @@ internal static class AuthorizeEndpoints
 {
     public static void RegisterAuthorizeEndpoints(this WebApplication app)
     {
-        app.MapPost("/connect/token", (HttpContext context) =>
-        {
-            return Results.BadRequest();
-        });
-
         app.MapGet("/authorize", (
             HttpContext context,
             [FromServices] IClientRepository clientRepository,
