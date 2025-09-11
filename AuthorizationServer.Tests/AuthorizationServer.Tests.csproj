@@ -15,6 +15,7 @@
 		<PackageReference Include="Flurl.Http" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="Shouldly" />
 		<PackageReference Include="WireMock.Net" />
 		<PackageReference Include="WireMock.Net.FluentAssertions" />
 		<PackageReference Include="xunit.v3" />

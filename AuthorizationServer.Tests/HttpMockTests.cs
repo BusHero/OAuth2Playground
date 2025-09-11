@@ -16,7 +16,7 @@ public sealed class HttpMockTests
             BaseAddress = new Uri("http://localhost:8888")
         };
 
-        var result = await client.GetAsync(new Uri("hello"), TestContext.Current.CancellationToken);
+        var result = await client.GetAsync("/hello", TestContext.Current.CancellationToken);
 
         result.StatusCode.Should().Be(HttpStatusCode.OK);
     }
