@@ -6,7 +6,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
 
 namespace AuthorizationServer.Tests.Flows.ClientCredentials;
 
@@ -53,6 +52,85 @@ public abstract class ClientCredentialsFlowTestsBase(HttpClient client)
 
     [Fact]
     public async Task AuthenticationInBodyReturnsOk()
+    {
+        using var body = new FormUrlEncodedContent([
+            new KeyValuePair<string, string>("client_id", VALID_CLIENT_ID),
+            new KeyValuePair<string, string>("client_secret", VALID_SECRET),
+            new KeyValuePair<string, string>("grant_type", GRANT_TYPE),
+            new KeyValuePair<string, string>("scope", VALID_SCOPE_1),
+        ]);
+        using var request = new HttpRequestMessage
+        {
+            Method = HttpMethod.Post,
+            Content = body,
+            RequestUri = tokenUri,
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            VALID_AUTHENTICATION_SCHEME,
+            Convert.ToBase64String(
+                Encoding.UTF8.GetBytes($"{VALID_CLIENT_ID}:{VALID_SECRET}")));
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        response.EnsureSuccessStatusCode();
+        var content = await response.Content.ReadFromJsonAsync<TokenResponse>(TestContext.Current.CancellationToken);
+
+        content!.ShouldSatisfyAllConditions(
+            x => x.AccessToken.ShouldNotBeNull(),
+            x => x.TokenType.ShouldBe("Bearer"),
+            x => x.ExperiesIn.ShouldBe(3600),
+            x => x.Scope.ShouldBe(VALID_SCOPE_1));
+    }
+
+    [Theory, AutoData]
+    public async Task WrongAuthenticationInHeaderReturnsBadRequest(string invalidClientId)
+    {
+        using var body = new FormUrlEncodedContent([
+            new KeyValuePair<string, string>("client_id", VALID_CLIENT_ID),
+            new KeyValuePair<string, string>("client_secret", VALID_SECRET),
+            new KeyValuePair<string, string>("grant_type", GRANT_TYPE),
+            new KeyValuePair<string, string>("scope", VALID_SCOPE_1),
+        ]);
+        using var request = new HttpRequestMessage
+        {
+            Method = HttpMethod.Post,
+            Content = body,
+            RequestUri = tokenUri,
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            VALID_AUTHENTICATION_SCHEME,
+            Convert.ToBase64String(
+                Encoding.UTF8.GetBytes($"{invalidClientId}:{VALID_SECRET}")));
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Theory, AutoData]
+    public async Task WrongAuthenticationInBodyReturnsBadRequest(string invalidClientId)
+    {
+        using var body = new FormUrlEncodedContent([
+            new KeyValuePair<string, string>("client_id", invalidClientId),
+            new KeyValuePair<string, string>("client_secret", VALID_SECRET),
+            new KeyValuePair<string, string>("grant_type", GRANT_TYPE),
+            new KeyValuePair<string, string>("scope", VALID_SCOPE_1),
+        ]);
+        using var request = new HttpRequestMessage
+        {
+            Method = HttpMethod.Post,
+            Content = body,
+            RequestUri = tokenUri,
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue(
+            VALID_AUTHENTICATION_SCHEME,
+            Convert.ToBase64String(
+                Encoding.UTF8.GetBytes($"{VALID_CLIENT_ID}:{VALID_SECRET}")));
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        response.EnsureSuccessStatusCode();
+    }
+
+    [Fact]
+    public async Task AuthenticationInBodyAndHeaderReturnsOk()
     {
         using var body = new FormUrlEncodedContent([
             new KeyValuePair<string, string>("client_id", VALID_CLIENT_ID),
