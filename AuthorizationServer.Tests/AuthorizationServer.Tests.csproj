@@ -7,13 +7,16 @@
 		<TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
 		<OutputType>Exe</OutputType>
 		<NoWarn>$(NoWarn);CA1062;CA1001;CA1034;CA2234;CA1515</NoWarn>
-	</PropertyGroup>
+	  <UserSecretsId>046813bb-6cf5-4ffd-9acd-c1bc4f25d4b3</UserSecretsId>
+  </PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="AngleSharp" />
 		<PackageReference Include="AutoFixture.Xunit3" />
 		<PackageReference Include="FluentAssertions" />
 		<PackageReference Include="Flurl.Http" />
+		<PackageReference Include="JWT" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+		<PackageReference Include="Phoesion.DevJwt" />
 		<PackageReference Include="Shouldly" />
 		<PackageReference Include="WireMock.Net.FluentAssertions" />
 		<PackageReference Include="xunit.v3" />
